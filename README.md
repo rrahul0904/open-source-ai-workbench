@@ -1,5 +1,7 @@
 # Open Source AI Workbench
 
+![CI](https://github.com/rrahul0904/open-source-ai-workbench/actions/workflows/ci.yml/badge.svg)
+
 A clean-room, deployment-ready AI workspace that turns the SATNA_PROJECT open-source collection into one coherent product instead of ten disconnected clones.
 
 ## What is implemented
