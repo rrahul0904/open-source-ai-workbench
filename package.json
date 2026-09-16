@@ -1,0 +1,15 @@
+{
+  "name": "open-source-ai-workbench",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Dependency-free AI workbench with executable clean-room capability tracks inspired by open-source agent products.",
+  "engines": { "node": ">=20" },
+  "scripts": {
+    "dev": "node --watch server.mjs",
+    "start": "node server.mjs",
+    "test": "node --test tests/*.test.mjs",
+    "check": "node scripts/check.mjs",
+    "smoke": "node scripts/smoke.mjs"
+  }
+}

@@ -1,0 +1,68 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="description" content="Open Source AI Workbench — multi-capability agent, research, media, inbox, OSINT and integration workspace." />
+  <title>Open Source AI Workbench</title>
+  <link rel="stylesheet" href="/styles.css" />
+</head>
+<body>
+  <div class="noise"></div>
+  <header class="topbar">
+    <a class="brand" href="#"><span class="mark">OW</span><span>Open Source AI Workbench</span></a>
+    <div class="status"><span class="pulse"></span><span id="systemStatus">Checking runtime…</span></div>
+  </header>
+  <main>
+    <section class="hero">
+      <div>
+        <p class="eyebrow">ONE WORKSPACE · ELEVEN EXECUTABLE FLOWS</p>
+        <h1>Research, reason, create, investigate and automate.</h1>
+        <p class="lede">A clean-room AI workbench that combines multi-agent research, chat, deterministic video composition, finance, inbox triage, voice, OSINT graphs, engineering gates and connector execution.</p>
+        <div class="hero-actions"><button id="launchDemo" class="primary">Run cross-capability demo</button><a href="#workbench" class="secondary">Open workbench</a></div>
+      </div>
+      <aside class="hero-card">
+        <div class="hero-card-head"><span>Runtime</span><strong id="runtimeMode">Loading</strong></div>
+        <div id="providerGrid" class="provider-grid"></div>
+      </aside>
+    </section>
+
+    <section id="workbench" class="workspace">
+      <div class="sidebar">
+        <div class="section-title">Capabilities</div>
+        <div id="capabilityList" class="capability-list"></div>
+      </div>
+      <section class="runner">
+        <div class="runner-head">
+          <div><p class="eyebrow" id="categoryLabel">WORKFLOW</p><h2 id="workflowTitle">Choose a capability</h2><p id="workflowDescription">Select a capability from the left to inspect and run it.</p></div>
+          <span id="readyBadge" class="badge">READY</span>
+        </div>
+        <form id="workflowForm">
+          <label>Workflow input <span>JSON</span></label>
+          <textarea id="workflowInput" spellcheck="false">{}</textarea>
+          <div class="form-actions"><button class="primary" type="submit">Run workflow</button><button class="secondary" id="resetInput" type="button">Reset sample</button></div>
+        </form>
+        <div class="result-header"><span>Result</span><span id="duration"></span></div>
+        <pre id="result">Run a workflow to see its auditable result.</pre>
+        <div id="audioMount"></div>
+      </section>
+      <aside class="history-panel">
+        <div class="section-title">Recent runs</div>
+        <div id="runHistory" class="history"></div>
+      </aside>
+    </section>
+
+    <section class="architecture">
+      <div><p class="eyebrow">FAIL-CLOSED BY DEFAULT</p><h2>Deployable without vendor lock-in.</h2></div>
+      <div class="architecture-grid">
+        <article><strong>Zero required secrets</strong><p>Every workflow has an executable deterministic demo path. Live providers are optional adapters.</p></article>
+        <article><strong>Approval boundaries</strong><p>Email send, publishing and other external side effects remain approval-gated.</p></article>
+        <article><strong>Portable runtime</strong><p>Pure Node.js, Vercel functions and Docker use the same workflow core.</p></article>
+        <article><strong>Optional durability</strong><p>Memory works out of the box; Upstash Redis REST can be enabled without changing code.</p></article>
+      </div>
+    </section>
+  </main>
+  <footer>Open Source AI Workbench · Clean-room implementation · Demo data is synthetic</footer>
+  <script type="module" src="/app.js"></script>
+</body>
+</html>
