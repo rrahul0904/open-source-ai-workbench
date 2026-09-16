@@ -62,6 +62,7 @@ docker compose up --build
 GET  /api/health
 GET  /api/capabilities
 GET  /api/runs
+GET  /api/acceptance
 POST /api/workflows/run
 ```
 

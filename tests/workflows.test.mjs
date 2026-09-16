@@ -39,4 +39,8 @@ test('HTTP health and workflow API operate without secrets', async () => {
   const run = await handleApi({ method: 'POST', path: '/api/workflows/run', body: { workflowId: 'engineering-agent', input: { goal: 'Verify release' } } });
   assert.equal(run.status, 200);
   assert.equal(run.body.status, 'succeeded');
+  const acceptance = await handleApi({ method: 'GET', path: '/api/acceptance' });
+  assert.equal(acceptance.status, 200);
+  assert.equal(acceptance.body.ok, true);
+  assert.equal(acceptance.body.externalActionTaken, false);
 });

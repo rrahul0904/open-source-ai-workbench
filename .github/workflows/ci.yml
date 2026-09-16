@@ -36,5 +36,6 @@ jobs:
             sleep 1
           done
           cat /tmp/health.json
+          curl --fail --silent http://127.0.0.1:3000/api/acceptance | grep -q '"ok":true'
           curl --fail --silent http://127.0.0.1:3000/ | grep -q "Open Source AI Workbench"
           curl --fail --silent -H 'content-type: application/json' -d '{"workflowId":"launch-campaign","input":{"topic":"CI acceptance"}}' http://127.0.0.1:3000/api/workflows/run | grep -q '"status":"succeeded"'

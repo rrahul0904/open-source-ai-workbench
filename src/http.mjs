@@ -32,6 +32,10 @@ export async function handleApi({ method, path, headers = {}, body = null, clien
   if (method === 'GET' && path === '/api/health') return { status: 200, body: healthPayload() };
   if (method === 'GET' && path === '/api/capabilities') return { status: 200, body: { capabilities, providers: providerStatus(), authMode: auth.mode } };
   if (method === 'GET' && path === '/api/runs') return { status: 200, body: { runs: await listRuns(25) } };
+  if (method === 'GET' && path === '/api/acceptance') {
+    const run = await executeWorkflow('launch-campaign', { topic: 'production acceptance', audience: 'operators', provider: 'demo' });
+    return { status: 200, body: { ok: run.status === 'succeeded', workflowId: run.workflowId, status: run.status, durationMs: run.durationMs, externalActionTaken: run.output.externalActionTaken } };
+  }
   if (method === 'POST' && path === '/api/workflows/run') {
     const workflowId = body?.workflowId;
     if (!workflowId) return { status: 400, body: { error: 'workflowId is required' } };
