@@ -1,0 +1,40 @@
+name: CI
+on:
+  push:
+    branches: [main]
+  pull_request:
+permissions:
+  contents: read
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Unit and integration tests
+        run: npm test
+      - name: Release checks
+        run: npm run check
+      - name: HTTP smoke acceptance
+        run: npm run smoke
+  container:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build deployment image
+        run: docker build -t open-source-ai-workbench:${{ github.sha }} .
+      - name: Boot container
+        run: docker run -d --rm --name workbench -p 3000:3000 open-source-ai-workbench:${{ github.sha }}
+      - name: Live HTTP acceptance
+        run: |
+          for i in {1..20}; do
+            if curl --fail --silent http://127.0.0.1:3000/api/health > /tmp/health.json; then break; fi
+            sleep 1
+          done
+          cat /tmp/health.json
+          curl --fail --silent http://127.0.0.1:3000/ | grep -q "Open Source AI Workbench"
+          curl --fail --silent -H 'content-type: application/json' -d '{"workflowId":"launch-campaign","input":{"topic":"CI acceptance"}}' http://127.0.0.1:3000/api/workflows/run | grep -q '"status":"succeeded"'
