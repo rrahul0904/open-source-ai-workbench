@@ -1,5 +1,6 @@
 import crypto from 'node:crypto';
 import { getCapability } from './catalog.mjs';
+import { defaultWorkflowGraph, executeGraph } from './graph-runtime.mjs';
 import { synthesizeDemoWav } from './audio.mjs';
 import { demoMarketSnapshot, executeConfiguredConnector, generateText } from './providers.mjs';
 import { requireApproval } from './security.mjs';
@@ -165,6 +166,11 @@ async function contentFactory(input) {
   };
 }
 
+async function workflowStudio(input) {
+  const graph = input.graph || defaultWorkflowGraph();
+  return executeGraph({ graph, input });
+}
+
 async function launchCampaign(input) {
   const topic = input.topic || 'AI workbench';
   const audience = input.audience || 'technical teams';
@@ -191,6 +197,7 @@ const handlers = {
   'osint-graph': osintGraph,
   'engineering-agent': engineeringAgent,
   'connector-runtime': connectorRuntime,
+  'workflow-studio': workflowStudio,
   'launch-campaign': launchCampaign
 };
 
