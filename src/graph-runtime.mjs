@@ -19,7 +19,10 @@ function renderTemplate(value, scope) {
 function renderValue(value, scope) {
   if (Array.isArray(value)) return value.map((item) => renderValue(item, scope));
   if (value && typeof value === 'object') return Object.fromEntries(Object.entries(value).map(([key, item]) => [key, renderValue(item, scope)]));
-  return typeof value === 'string' ? renderTemplate(value, scope) : value;
+  if (typeof value !== 'string') return value;
+  const exact = value.match(/^\{\{\s*([^}]+?)\s*\}\}$/);
+  if (exact) return pathValue(scope, exact[1].trim());
+  return renderTemplate(value, scope);
 }
 
 function tokens(value) {
