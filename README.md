@@ -6,7 +6,7 @@ A clean-room, deployment-ready AI workspace that turns the SATNA_PROJECT open-so
 
 ## What is implemented
 
-The repository ships **11 executable workflows** covering the ten source capability tracks plus a cross-capability orchestrator:
+The repository ships **12 executable workflows** covering the ten source capability tracks plus a cross-capability orchestrator:
 
 - TradingAgents-style multi-agent market research council
 - LibreChat-style provider-abstracted chat
@@ -18,6 +18,7 @@ The repository ships **11 executable workflows** covering the ten source capabil
 - Flowsint-inspired OSINT entity/relationship graph workspace
 - agent-skills-inspired spec → plan → test → review → ship engineering agent
 - Nango-inspired normalized connector/action/sync runtime
+- Dify-inspired bounded graph workflow runtime with retrieval and node traces
 - Cross-capability campaign orchestration
 
 The product is intentionally **zero-secret runnable**. Demo mode is real executable software, not disabled UI: every workflow returns deterministic output and can be exercised through the browser or API. Optional live providers plug in through environment variables.
