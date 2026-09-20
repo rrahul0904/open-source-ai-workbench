@@ -29,6 +29,34 @@ test('voice studio returns playable wav data URI', async () => {
   assert.match(run.output.audioDataUrl, /^data:audio\/wav;base64,/);
 });
 
+test('workflow studio executes retrieval -> llm -> output with node traces', async () => {
+  const run = await executeWorkflow('workflow-studio', {
+    question: 'What makes external actions safe?',
+    documents: [
+      { id: 'security', title: 'Security', text: 'External actions remain behind explicit approval gates.' },
+      { id: 'runtime', title: 'Runtime', text: 'The service can run with deterministic demo providers.' }
+    ]
+  });
+  assert.equal(run.status, 'succeeded');
+  assert.equal(run.output.graph.nodeCount, 4);
+  assert.equal(run.output.trace.length, 4);
+  assert.equal(run.output.trace.every((step) => step.status === 'succeeded'), true);
+  assert.match(run.output.output.retrieval, /security/);
+});
+
+test('workflow studio rejects cycles and unsupported executable nodes', async () => {
+  await assert.rejects(() => executeWorkflow('workflow-studio', {
+    graph: {
+      nodes: [{ id: 'a', type: 'input' }, { id: 'b', type: 'output', config: { fields: {} } }],
+      edges: [['a', 'b'], ['b', 'a']]
+    }
+  }), /cycle/);
+
+  await assert.rejects(() => executeWorkflow('workflow-studio', {
+    graph: { nodes: [{ id: 'unsafe', type: 'code' }], edges: [] }
+  }), /Unsupported workflow node type/);
+});
+
 test('unknown workflow fails closed', async () => {
   await assert.rejects(() => executeWorkflow('not-real', {}), /Unknown workflow/);
 });
