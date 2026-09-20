@@ -90,6 +90,15 @@ export const capabilities = [
     inputs: ['connector', 'operation', 'payload']
   },
   {
+    id: 'workflow-studio',
+    name: 'Workflow Studio Runtime',
+    inspiredBy: 'Dify',
+    category: 'Orchestration',
+    status: 'ready',
+    description: 'Executes bounded data-defined DAG workflows with knowledge retrieval, model nodes, structured outputs and node-level traces.',
+    inputs: ['question', 'documents', 'graph']
+  },
+  {
     id: 'launch-campaign',
     name: 'Cross-capability Campaign',
     inspiredBy: 'Unified Workbench',
