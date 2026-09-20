@@ -6,7 +6,7 @@ A clean-room, deployment-ready AI workspace that turns the SATNA_PROJECT open-so
 
 ## What is implemented
 
-The repository ships **12 executable workflows** covering the ten source capability tracks plus a cross-capability orchestrator:
+The repository ships **12 executable workflows** covering eleven source capability tracks plus a cross-capability orchestrator:
 
 - TradingAgents-style multi-agent market research council
 - LibreChat-style provider-abstracted chat
