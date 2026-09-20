@@ -41,7 +41,7 @@ test('workflow studio executes retrieval -> llm -> output with node traces', asy
   assert.equal(run.output.graph.nodeCount, 4);
   assert.equal(run.output.trace.length, 4);
   assert.equal(run.output.trace.every((step) => step.status === 'succeeded'), true);
-  assert.match(run.output.output.retrieval, /security/);
+  assert.equal(run.output.output.retrieval[0].id, 'security');
 });
 
 test('workflow studio rejects cycles and unsupported executable nodes', async () => {
