@@ -10,6 +10,14 @@ const samples = {
   'osint-graph': { entities: [{ id: 'org-1', type: 'organization', label: 'Example Corp' }, { id: 'domain-1', type: 'domain', label: 'example.org' }], relationships: [] },
   'engineering-agent': { goal: 'Ship a production-ready workflow feature with exact verification evidence.' },
   'connector-runtime': { connector: 'demo-connector', operation: 'sync', payload: { records: 3 } },
+  'workflow-studio': {
+    question: 'Which capabilities make this workbench deployment-friendly?',
+    documents: [
+      { id: 'runtime', title: 'Runtime', text: 'The workbench runs with zero required secrets and supports Docker and Vercel.' },
+      { id: 'safety', title: 'Safety', text: 'External effects stay behind explicit approval and configured provider boundaries.' },
+      { id: 'audit', title: 'Auditability', text: 'Workflow runs are recorded and the graph runtime emits per-node traces.' }
+    ]
+  },
   'launch-campaign': { topic: 'AI agents for data engineering', audience: 'senior data architects', durationSeconds: 24 }
 };
 
