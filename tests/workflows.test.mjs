@@ -44,3 +44,12 @@ test('HTTP health and workflow API operate without secrets', async () => {
   assert.equal(acceptance.body.ok, true);
   assert.equal(acceptance.body.externalActionTaken, false);
 });
+
+
+test('agentic stack exposes a fail-closed five-stage development loop', async () => {
+  const run = await executeWorkflow('agentic-stack', { goal: 'Build a safe feature', constraints: ['no external side effects'] });
+  assert.deepEqual(run.output.stages.map((stage) => stage.id), ['build', 'memory', 'orchestrate', 'control', 'ship']);
+  assert.equal(run.output.stages.at(-1).decision, 'not-certified');
+  assert.equal(run.output.externalActionTaken, false);
+  assert.equal(run.output.sourceAudit.mode, 'verified-subset-clean-room');
+});

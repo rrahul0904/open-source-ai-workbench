@@ -81,6 +81,15 @@ export const capabilities = [
     inputs: ['goal']
   },
   {
+    id: 'agentic-stack',
+    name: 'Agentic Development Loop',
+    inspiredBy: 'SATNA verified Claude agent stack donors',
+    category: 'Engineering',
+    status: 'ready',
+    description: 'Build-memory-orchestrate-control-ship plan with explicit evidence and release boundaries.',
+    inputs: ['goal', 'constraints']
+  },
+  {
     id: 'connector-runtime',
     name: 'Connector Runtime',
     inspiredBy: 'Nango',
