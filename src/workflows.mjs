@@ -138,6 +138,72 @@ async function engineeringAgent(input) {
   };
 }
 
+async function agenticStack(input) {
+  const goal = input.goal || 'Ship the requested capability safely';
+  const constraints = Array.isArray(input.constraints)
+    ? input.constraints.map((value) => String(value)).filter(Boolean)
+    : words(input.constraints || '');
+
+  return {
+    goal,
+    constraints,
+    stages: [
+      {
+        id: 'build',
+        purpose: 'Turn the goal into a bounded vertical slice before implementation begins.',
+        artifacts: ['acceptance-criteria', 'interface-contract', 'architecture-notes', 'implementation-slice'],
+        donorPatterns: ['animated-sketch-diagram', 'archcore', 'shipwright'],
+        state: 'planned'
+      },
+      {
+        id: 'memory',
+        purpose: 'Keep evidence, decisions and reusable project context durable and source-aware.',
+        artifacts: ['context-ledger', 'decision-log', 'evidence-index', 'project-instructions'],
+        donorPatterns: ['wenlan', 'dsh-deepread', 'obsidian-skills', 'claude-md-templates'],
+        state: 'planned'
+      },
+      {
+        id: 'orchestrate',
+        purpose: 'Split independent work into explicit role packets without claiming that external workers executed.',
+        roles: [
+          { role: 'planner', access: 'read-only', responsibility: 'decompose scope and identify risks' },
+          { role: 'implementer', access: 'isolated-write', responsibility: 'build one bounded slice in an isolated branch/worktree' },
+          { role: 'reviewer', access: 'read-only', responsibility: 'verify diff, tests, security boundaries and evidence' }
+        ],
+        donorPatterns: ['claude-wayfinder', 'magic-cc-codex-worker', 'crosstalk'],
+        state: 'planned'
+      },
+      {
+        id: 'control',
+        purpose: 'Keep destructive, external and release-affecting operations behind explicit boundaries.',
+        gates: [
+          { name: 'project-boundary', status: 'pass', evidence: 'workflow contract only' },
+          { name: 'unit-tests', status: 'planned', evidence: 'must be produced by repository execution' },
+          { name: 'security-review', status: 'planned', evidence: 'must be produced by repository execution' },
+          { name: 'external-actions', status: 'blocked', evidence: 'human/provider approval required' },
+          { name: 'hosted-runtime', status: 'runtime-dependent', evidence: 'requires deployed environment proof' }
+        ],
+        donorPatterns: ['claude-code-project-boundary', 'claude-pager', 'claude-prospector'],
+        state: 'fail-closed'
+      },
+      {
+        id: 'ship',
+        purpose: 'Make the release state truthful by separating repository evidence from hosted evidence.',
+        decision: 'not-certified',
+        repositoryEvidenceRequired: ['implementation', 'tests', 'security checks', 'reviewed diff'],
+        hostedEvidenceRequired: ['deployment health', 'real provider/runtime checks where applicable'],
+        externalActionTaken: false
+      }
+    ],
+    sourceAudit: {
+      mode: 'verified-subset-clean-room',
+      excludedAsPosted: ['Lifecycle-Inno/claude-ops', 'nicolai-bernse/backlogd', 'TLS-Radar/tlsradar', 'explorium-ai/vibe-prospecting'],
+      note: 'No third-party source code is vendored or executed by this demo workflow.'
+    },
+    externalActionTaken: false
+  };
+}
+
 async function connectorRuntime(input) {
   const operation = input.operation || 'sync';
   const result = await executeConfiguredConnector({ operation, payload: input.payload || {} });
@@ -190,6 +256,7 @@ const handlers = {
   'voice-studio': voiceStudio,
   'osint-graph': osintGraph,
   'engineering-agent': engineeringAgent,
+  'agentic-stack': agenticStack,
   'connector-runtime': connectorRuntime,
   'launch-campaign': launchCampaign
 };
