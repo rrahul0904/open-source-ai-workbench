@@ -45,6 +45,37 @@ That separation is the core capability to bring into the Workbench.
 9. Optional routines run selected operations on a schedule.
 10. Runtime failures and contract mismatches are observable so an agent can repair them.
 
+## 3A. Reddit launch feedback — incorporated
+
+The launch thread was reviewed directly, including the currently indexed comments and the founder's replies.
+
+### Feedback 1 — immediate comparison with Claude Artifacts
+
+A commenter asked how Charming differs from Claude Artifacts. The founder's answer was that Charming apps are full apps with a database, API and authentication provider; they can call APIs, persist data and be shared with different access levels.
+
+**Reverse-engineering implication:** the reconstruction must not be framed as an artifact/HTML hosting service. Persistent backend state, callable operations/APIs, identity and server-enforced access levels are core product requirements and must exist before parity claims.
+
+### Feedback 2 — migration of apps already built with Claude
+
+A commenter asked whether a company that already built apps through Claude can convert them to Charming apps. The founder said this is expected to be possible, often by asking Claude to deploy the existing app to Charming, while noting compatibility depends on the source app.
+
+**Reverse-engineering implication:** add an explicit import/migration path for existing AI-built apps. The platform should accept an existing app/source package, inspect unsupported assumptions, produce a migration/compatibility report, and convert supported storage/auth/API behavior into the hosted-app contract without silently losing data or functionality.
+
+### Migration capability track
+
+- source/app import intake;
+- compatibility scanner for browser-only state, unsupported libraries, backend assumptions and external services;
+- migration plan with blocking vs auto-convertible findings;
+- source transformation into the canonical HostedApp contract;
+- data migration adapters where a source data export exists;
+- post-import validation and smoke tests;
+- rollback/no-cutover behavior when required capabilities are unsupported.
+
+### Product positioning constraint learned from the thread
+
+The primary value proposition is **durable full-stack personal/team apps built by the AI the user already has**, not a replacement AI builder. Comparisons should therefore be tested against artifact-style chat outputs on persistence, API/backend capability, auth/access control, shareability and cross-agent reuse.
+
+
 ## 4. Core architecture
 
 ```text
