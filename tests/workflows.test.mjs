@@ -8,7 +8,7 @@ test('all catalog capabilities execute in demo mode', async () => {
   for (const capability of capabilities) {
     const input = {
       symbol: 'TEST', prompt: 'Hello', topic: 'AI agents', audience: 'builders', text: 'Hello world', goal: 'Ship safely',
-      subject: 'Follow up', body: 'Please reply today', entities: [{ id: 'a', label: 'A' }, { id: 'b', label: 'B' }], relationships: []
+      kind: 'email', subject: 'Follow up', body: 'Please reply today', entities: [{ id: 'a', label: 'A' }, { id: 'b', label: 'B' }], relationships: []
     };
     const run = await executeWorkflow(capability.id, input);
     assert.equal(run.status, 'succeeded', capability.id);

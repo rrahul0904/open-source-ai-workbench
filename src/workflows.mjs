@@ -4,6 +4,8 @@ import { synthesizeDemoWav } from './audio.mjs';
 import { demoMarketSnapshot, executeConfiguredConnector, generateText } from './providers.mjs';
 import { requireApproval } from './security.mjs';
 import { saveRun } from './storage.mjs';
+import { defensiveTriage, privacySafeWorkflowInput } from './defensive-triage.mjs';
+import { modelExperimentPlan } from './model-experiment-plan.mjs';
 
 function words(value) {
   return String(value || '').trim().split(/\s+/).filter(Boolean);
@@ -181,6 +183,8 @@ async function launchCampaign(input) {
 }
 
 const handlers = {
+  'defensive-triage': defensiveTriage,
+  'model-experiment-plan': modelExperimentPlan,
   'trading-research': tradingResearch,
   'multi-model-chat': multiModelChat,
   'video-composer': videoComposer,
@@ -209,7 +213,7 @@ export async function executeWorkflow(id, input = {}) {
       startedAt,
       completedAt: new Date().toISOString(),
       durationMs: Math.round(performance.now() - start),
-      input,
+      input: privacySafeWorkflowInput(id, input),
       output
     };
     await saveRun(run);
@@ -223,7 +227,7 @@ export async function executeWorkflow(id, input = {}) {
       startedAt,
       completedAt: new Date().toISOString(),
       durationMs: Math.round(performance.now() - start),
-      input,
+      input: privacySafeWorkflowInput(id, input),
       error: error instanceof Error ? error.message : String(error)
     };
     await saveRun(run);

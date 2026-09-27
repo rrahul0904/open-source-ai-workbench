@@ -1,5 +1,7 @@
 const state = { capabilities: [], selected: null };
 const samples = {
+  'defensive-triage': { kind: 'email', text: 'Urgent: please verify your account password today.', provider: 'demo' },
+  'model-experiment-plan': { os: 'linux', accelerator: 'cuda', memoryGb: 24, budgetHours: 2 },
   'trading-research': { symbol: 'SNOW', question: 'Evaluate the setup and summarize the bull, bear and risk cases.' },
   'multi-model-chat': { prompt: 'Design a migration plan from a legacy warehouse to a cloud-native analytics platform.', provider: 'demo' },
   'video-composer': { topic: 'How agentic workflows work', durationSeconds: 30 },
