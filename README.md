@@ -6,7 +6,7 @@ A clean-room, deployment-ready AI workspace that turns the SATNA_PROJECT open-so
 
 ## What is implemented
 
-The repository ships **11 executable workflows** covering the ten source capability tracks plus a cross-capability orchestrator:
+The repository ships **13 executable workflows** covering the ten source capability tracks, a cross-capability orchestrator, and two independently authored research-donor slices:
 
 - TradingAgents-style multi-agent market research council
 - LibreChat-style provider-abstracted chat
@@ -21,6 +21,11 @@ The repository ships **11 executable workflows** covering the ten source capabil
 - Cross-capability campaign orchestration
 
 The product is intentionally **zero-secret runnable**. Demo mode is real executable software, not disabled UI: every workflow returns deterministic output and can be exercised through the browser or API. Optional live providers plug in through environment variables.
+
+- CyberPrime-inspired defensive security triage: bounded heuristic demo, optional explicitly opted-in advisory through an operator-hosted endpoint; no weights are bundled.
+- Optimus-inspired model experiment planner: hardware/backend recommendations, frozen holdout, provenance and training acceptance contract; does not claim GPU training.
+
+See [the engineering/limitations dossier](docs/CYBERPRIME_OPTIMUS_ENGINEERING.md) for model license, privacy controls, source references and live-service boundaries.
 
 ## Run locally
 

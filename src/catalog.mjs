@@ -97,6 +97,24 @@ export const capabilities = [
     status: 'ready',
     description: 'Runs research, copy, video, voice and delivery preparation as one auditable workflow.',
     inputs: ['topic', 'audience']
+  },
+  {
+    id: 'defensive-triage',
+    name: 'Defensive Security Triage',
+    inspiredBy: 'Cyber-Prime 1.1 (research donor)',
+    category: 'Security',
+    status: 'ready-demo',
+    description: 'Bounded, privacy-conscious email, HTTP and threat-report heuristics; optional explicitly opted-in model advisory. No scanning or automatic enforcement.',
+    inputs: ['kind', 'text', 'provider']
+  },
+  {
+    id: 'model-experiment-plan',
+    name: 'Local Model Experiment Planner',
+    inspiredBy: 'Optimus Studio (research donor)',
+    category: 'Model Research',
+    status: 'ready-demo',
+    description: 'Versioned local GPU experiment plan, source-license and frozen-holdout gates; no downloaded weights or GPU training are claimed.',
+    inputs: ['os', 'accelerator', 'memoryGb', 'budgetHours']
   }
 ];
 
