@@ -3,6 +3,7 @@ import { readFile } from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { handleApi } from './src/http.mjs';
+import { streamComparison } from './src/compare/http.mjs';
 
 const root = path.dirname(fileURLToPath(import.meta.url));
 const port = Number(process.env.PORT || 3000);
@@ -24,6 +25,11 @@ async function readBody(req) {
 const server = http.createServer(async (req, res) => {
   try {
     const url = new URL(req.url, `http://${req.headers.host || 'localhost'}`);
+    if (url.pathname === '/api/compare/stream' && req.method === 'POST') {
+      const body = await readBody(req);
+      await streamComparison({ req, res, body, clientKey: req.socket.remoteAddress || 'local' });
+      return;
+    }
     if (url.pathname.startsWith('/api/')) {
       const body = ['POST', 'PUT', 'PATCH'].includes(req.method) ? await readBody(req) : null;
       const response = await handleApi({ method: req.method, path: url.pathname, headers: req.headers, body, clientKey: req.socket.remoteAddress || 'local' });
@@ -32,7 +38,7 @@ const server = http.createServer(async (req, res) => {
       return;
     }
 
-    const relative = url.pathname === '/' ? 'index.html' : url.pathname.replace(/^\/+/, '');
+    const relative = url.pathname === '/' ? 'index.html' : url.pathname === '/compare' ? 'compare.html' : url.pathname.replace(/^\/+/, '');
     const target = path.resolve(root, 'public', relative);
     const publicRoot = path.resolve(root, 'public');
     if (!target.startsWith(publicRoot)) throw Object.assign(new Error('Forbidden'), { statusCode: 403 });
