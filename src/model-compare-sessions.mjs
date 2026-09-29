@@ -33,7 +33,7 @@ export function createMockComparisonSessions({
       // The built-in demo produces at most 22 events. Abort a misbehaving injected
       // adapter instead of retaining an unbounded event history.
       if (session.events.length >= 128) {
-        controller.abort();
+        controller.abort({ kind: 'cancelled' });
         return;
       }
       session.events.push(event);
@@ -66,7 +66,7 @@ export function createMockComparisonSessions({
     if (!session) return null;
     if (!session.finished) {
       session.status = 'cancelling';
-      session.controller.abort();
+      session.controller.abort({ kind: 'cancelled' });
     }
     return session;
   }
