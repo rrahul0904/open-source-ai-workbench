@@ -117,3 +117,36 @@ test('wire framing does not interpolate raw model output into SSE protocol', () 
   assert.equal(frame.match(/\nevent: /g).length, 1);
   assert.equal(JSON.parse(frame.split('data: ')[1]).text, 'hello\nevent: evil\n\n');
 });
+
+test('Anthropic SSE text and usage are normalized without thinking/tool deltas', async () => {
+  const env = { ...live, ANTHROPIC_COMPARE_API_KEY: 'anth-secret', ANTHROPIC_COMPARE_MODEL: 'claude-test' };
+  const frames = [
+    'event: message_start\ndata: {"type":"message_start","message":{"usage":{"input_tokens":5}}}\n\n',
+    'event: content_block_delta\ndata: {"type":"content_block_delta","delta":{"type":"thinking_delta","thinking":"hidden"}}\n\n',
+    'event: content_block_delta\ndata: {"type":"content_block_delta","delta":{"type":"text_delta","text":"Visible"}}\n\n',
+    'event: message_stop\ndata: {"type":"message_stop"}\n\n'
+  ];
+  const seen = []; const adapter = createAdapters({ mode: 'live', env, fetchImpl: async (url, init) => { seen.push({ url, init }); return { ok: true, body: fakeStream(frames) }; } }).anthropic;
+  const result = []; for await (const item of adapter.stream({ prompt: 'Question' })) result.push(item);
+  assert.equal(seen[0].url, 'https://api.anthropic.com/v1/messages');
+  assert.equal(seen[0].init.headers['x-api-key'], 'anth-secret');
+  assert.deepEqual(result.map(x => x.delta || x.usage?.input_tokens), [5, 'Visible']);
+});
+
+test('Gemini SSE candidate text and final usage are normalized with key only in server header', async () => {
+  const env = { ...live, GEMINI_COMPARE_API_KEY: 'gem-key', GEMINI_COMPARE_MODEL: 'gemini-test' };
+  const seen = []; const adapter = createAdapters({ mode: 'live', env, fetchImpl: async (url, init) => { seen.push({ url, init }); return { ok: true, body: fakeStream(['data: {"candidates":[{"content":{"parts":[{"text":"Hello"}]},"finishReason":"STOP"}],"usageMetadata":{"promptTokenCount":2}}\n\n']) }; } }).gemini;
+  const result = []; for await (const item of adapter.stream({ prompt: 'Question' })) result.push(item);
+  assert.match(seen[0].url, /streamGenerateContent\?alt=sse$/);
+  assert.ok(!seen[0].url.includes('gem-key'));
+  assert.equal(seen[0].init.headers['x-goog-api-key'], 'gem-key');
+  assert.equal(result[0].delta, 'Hello'); assert.equal(result[1].usage.promptTokenCount, 2);
+});
+
+test('DeepSeek OpenAI-compatible SSE remains pinned to DeepSeek endpoint', async () => {
+  const env = { ...live, DEEPSEEK_COMPARE_API_KEY: 'deep-key', DEEPSEEK_COMPARE_MODEL: 'deepseek-test' };
+  const seen = []; const adapter = createAdapters({ mode: 'live', env, fetchImpl: async (url, init) => { seen.push({ url, init }); return { ok: true, body: fakeStream(['data: {"choices":[{"delta":{"content":"Hello"}}]}\n\n','data: [DONE]\n\n']) }; } }).deepseek;
+  const result = []; for await (const item of adapter.stream({ prompt: 'Question' })) result.push(item);
+  assert.equal(seen[0].url, 'https://api.deepseek.com/chat/completions');
+  assert.equal(result[0].delta, 'Hello');
+});
