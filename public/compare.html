@@ -1,0 +1,76 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Original mock-only four-lane comparison workspace.">
+  <title>Synthetic comparison · Open Source AI Workbench</title>
+  <link rel="stylesheet" href="/compare.css">
+  <script type="module" defer src="/compare.js"></script>
+</head>
+<body>
+  <a class="skip" href="#comparison">Skip to comparison</a>
+  <header class="masthead">
+    <a href="/">← Workbench home</a>
+    <span class="pill">RE-334 · synthetic-only</span>
+  </header>
+  <main id="comparison">
+    <div class="intro">
+      <p class="eyebrow">ORIGINAL COMPARISON WORKSPACE</p>
+      <h1>Explore four distinct demo perspectives.</h1>
+      <p>Outputs come from deterministic, synthetic adapters—not commercial AI models.
+        Responses are illustrative, not verified facts or a synthesized answer.</p>
+    </div>
+    <form id="compareForm" aria-describedby="demoNotice">
+      <label for="prompt">Comparison prompt</label>
+      <textarea id="prompt" name="prompt" maxlength="4000" rows="4" required
+        placeholder="Describe several approaches to testing a data pipeline."></textarea>
+      <p id="demoNotice" class="help">1–4,000 characters. This pilot retains running events only in server memory for a limited period; do not enter sensitive information.</p>
+      <fieldset>
+        <legend>Choose demo adapters (at least one)</legend>
+        <div id="modelChoices" class="choices">
+          <label><input type="checkbox" name="models" value="demo-analysis" checked> Demo adapter A — analysis</label>
+          <label><input type="checkbox" name="models" value="demo-creative" checked> Demo adapter B — creative</label>
+          <label><input type="checkbox" name="models" value="demo-structured" checked> Demo adapter C — structured</label>
+          <label><input type="checkbox" name="models" value="demo-cautious" checked> Demo adapter D — cautious</label>
+        </div>
+      </fieldset>
+      <div class="actions">
+        <button id="start" type="submit">Start synthetic comparison</button>
+        <button id="cancel" type="button" disabled>Cancel current comparison</button>
+      </div>
+      <p id="error" class="error" role="alert" hidden></p>
+      <p id="announcer" role="status" aria-live="polite" aria-atomic="true">Ready for a synthetic comparison.</p>
+    </form>
+    <section aria-labelledby="resultsTitle">
+      <div class="sectionhead">
+        <h2 id="resultsTitle">Independent demo responses</h2>
+        <span id="connection" aria-live="polite">Not connected</span>
+      </div>
+      <div class="lanes" id="lanes">
+        <article class="lane" data-model="demo-analysis" aria-labelledby="heading-analysis">
+          <h3 id="heading-analysis">Demo adapter A · Analysis</h3>
+          <p class="state" data-status>Waiting</p>
+          <pre tabindex="0" data-output aria-label="Demo adapter A response">No output yet.</pre>
+        </article>
+        <article class="lane" data-model="demo-creative" aria-labelledby="heading-creative">
+          <h3 id="heading-creative">Demo adapter B · Creative</h3>
+          <p class="state" data-status>Waiting</p>
+          <pre tabindex="0" data-output aria-label="Demo adapter B response">No output yet.</pre>
+        </article>
+        <article class="lane" data-model="demo-structured" aria-labelledby="heading-structured">
+          <h3 id="heading-structured">Demo adapter C · Structured</h3>
+          <p class="state" data-status>Waiting</p>
+          <pre tabindex="0" data-output aria-label="Demo adapter C response">No output yet.</pre>
+        </article>
+        <article class="lane" data-model="demo-cautious" aria-labelledby="heading-cautious">
+          <h3 id="heading-cautious">Demo adapter D · Cautious</h3>
+          <p class="state" data-status>Waiting</p>
+          <pre tabindex="0" data-output aria-label="Demo adapter D response">No output yet.</pre>
+        </article>
+      </div>
+    </section>
+  </main>
+  <footer>Clean-room demonstration · No third-party model dispatch · No synthesis, billing or persistence claim.</footer>
+</body>
+</html>
