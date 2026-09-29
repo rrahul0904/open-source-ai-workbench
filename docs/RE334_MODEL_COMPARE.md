@@ -7,7 +7,7 @@ Source of inspiration: public product descriptions in [Indes.AI's SideProject an
 | Phase | Deliverables | Acceptance gate | Current state |
 | --- | --- | --- | --- |
 | P0 — Research/architecture | Dated source evidence and empty-comment snapshot, comparators, vendor Terms/privacy discrepancy, repo overlap check | Provenance and clean-room boundary | Public-desk research complete; vendor runtime unverified |
-| P1 — Mock-only execution engine | Stable registry, four original mock text adapters, unique run/event IDs, injectable contracts, concurrent fan-out, status/error isolation, cancellation, deadline, eligibility gate | Node tests; no external provider dispatch | Implemented in this branch; GitHub CI pending |
+| P1 — Mock-only execution engine | Stable registry, four original mock text adapters, unique run/event IDs, injectable contracts, concurrent fan-out, status/error isolation, cancellation, deadline, eligibility gate | Node tests; no external provider dispatch | Implemented; exact-head verify/container passed at 73bd9b (run 36497018721) |
 | P2 — Original browser UI and streaming transport | SSE/fetch-stream endpoint with reconnect/cancel, responsive four-lane panel, focus/error accessibility, mobile acceptance | Browser E2E and verified network event ordering | Not started |
 | P3 — Grounded synthesis | Per-answer source provenance, contradiction map, evidence lookup and abstention rules | Attributed disagreements; no agreement-as-fact assumption | Not started |
 | P4 — Routing & evaluations | Deterministic smart routing baseline, fallback, holdout cases, latency/usage/cost instrumentation | Reproducible comparisons with no unsupported best-model claims | Not started |
@@ -28,3 +28,18 @@ P1 limitations: no network SSE, no UI, no actual LLM adapters, no cost ledger, n
 Reddit structured post JSON on 2026-09-28 reported `num_comments=0` and empty comment children. There are no observed commenter projects, criticisms or suggestions to implement. Refresh thread metadata and record any new comment IDs and linked projects with attribution before expanding scope. Pricing is internally inconsistent between source FAQ/App Store Premium and Sep 9 Terms; commercial modeling requires reconciliation.
 
 Repo-local branch name retains the provisional `re332` prefix from before the canonical tracker ID collision was discovered. Canonical portfolio ID is **RE-334**; existing RE-332 belongs to MLDrills.\n\nTracking issue: https://github.com/rrahul0904/open-source-ai-workbench/issues/12
+
+## P2 bounded mock-only slice (isolated from the later PR #13 head)
+
+This branch starts at `73bd9b908dff4625cc622f84fe7af12c29c0edaa` instead of rewriting the since-advanced draft PR. Open `/compare.html` on the Node HTTP server. `multi-model-chat` and `/api/workflows/run` are not modified.
+
+- `POST /api/compare/runs` validates the P1 demo registry and starts at most eight simultaneous, 32 retained process-local runs; response contains opaque run ID, events path and cancellation path.
+- `GET /api/compare/runs/:id/events` streams real `text/event-stream` events with P1 IDs, ordered replay from `Last-Event-ID`, no duplicate text append in the browser and disconnect without server-side cancellation. Invalid replay cursor is rejected.
+- `DELETE /api/compare/runs/:id` sends the existing P1 cancellation signal and allows individual terminal statuses before `run.completed`. Incomplete/failed provider output is retained but exception details are not emitted.
+- `GET /api/compare/catalog` identifies the only available labels as synthetic. The UI is original semantic HTML with explicit labels, keyboard focus, a status live region, four responsive cards and reduced-motion support. Output uses `textContent` rather than injected HTML.
+- Server memory is neither durable nor multi-instance; completed sessions expire after five minutes and restarting the process loses replay. SSE relies on a single running Node process. There are no third-party AI requests, provider credentials, real vendor names, synthesis, source citations, pricing, tenancy, billing, upload support or deployment guarantees.
+- Existing `WORKBENCH_API_KEY` protects comparison endpoints if enabled; native EventSource has no bearer-header input in this pilot, so the standalone browser page is intended for the default local public synthetic mode. The authenticated HTTP API can be exercised separately. Do not put private information in prompts.
+
+Verification: `npm test` includes live HTTP SSE event-order, partial-failure, cancellation, replay/cursor and authorization tests; the separate `npm run browser:compare` uses pinned CI-only Playwright and axe dependencies for a real Chromium keyboard/mobile/accessibility and reconnect check. Neither CI completion nor browser/device certification is implied by writing this documentation. No Vercel SSE function was added; this P2 transport is for the Node server only.
+
+Clean-room rule: all markup, client behavior and HTTP coordination are original, built around repository P1 synthetic contracts. No outside service code, private APIs, branding, assets or hidden behavior are copied.
