@@ -84,3 +84,7 @@ curl -s http://localhost:3000/api/workflows/run \
 - Synthetic finance values are clearly marked and are not investment advice.
 
 See [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) and [`docs/RELEASE.md`](docs/RELEASE.md).
+
+## Multi-Model Evidence Lab (RE-334)
+
+Open **`/compare`** to run four independently streamed, explicitly synthetic model lenses with no secrets. The original responsive browser UI supports cancellation, partial-failure isolation, comparison notes, Markdown copy and JSON export. `GET /api/compare/catalog` lists enabled models; `POST /api/compare/stream` uses SSE to stream per-provider events (local Node and Vercel functions). Use `npm run smoke:compare` against a running instance. All provider interfaces are pinned and locally mock-tested; paid-provider live execution is OFF by default and requires a protected operator key, explicit consent, model identifiers and provider credentials. This is a deployable pilot, not a public customer subscription platform or verified live provider parity. See [architecture, setup and commercial gates](docs/RE334_PRODUCT.md) and [release gates](docs/RE334_RELEASE_GATES.md).
