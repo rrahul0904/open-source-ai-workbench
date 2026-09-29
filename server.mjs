@@ -3,6 +3,7 @@ import { readFile } from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { handleApi } from './src/http.mjs';
+import { createMockComparisonHttp } from './src/model-compare-http.mjs';
 
 const root = path.dirname(fileURLToPath(import.meta.url));
 const port = Number(process.env.PORT || 3000);
@@ -21,9 +22,19 @@ async function readBody(req) {
   return text ? JSON.parse(text) : null;
 }
 
+const handleMockComparison = createMockComparisonHttp();
+
 const server = http.createServer(async (req, res) => {
   try {
     const url = new URL(req.url, `http://${req.headers.host || 'localhost'}`);
+    if (url.pathname.startsWith('/api/compare/')) {
+      let body = null;
+      if (req.method === 'POST') {
+        try { body = await readBody(req); }
+        catch (error) { throw Object.assign(new Error('Invalid JSON request'), { statusCode: error.statusCode || 400 }); }
+      }
+      if (await handleMockComparison(req, res, url, body)) return;
+    }
     if (url.pathname.startsWith('/api/')) {
       const body = ['POST', 'PUT', 'PATCH'].includes(req.method) ? await readBody(req) : null;
       const response = await handleApi({ method: req.method, path: url.pathname, headers: req.headers, body, clientKey: req.socket.remoteAddress || 'local' });
