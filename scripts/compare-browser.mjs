@@ -24,7 +24,8 @@ try {
   }
   assert.ok(alive, 'comparison server starts');
   browser = await chromium.launch({ headless: true });
-  const page = await browser.newPage({ viewport: { width: 1280, height: 900 } });
+  const context = await browser.newContext({ viewport: { width: 1280, height: 900 } });
+  const page = await context.newPage();
   const pageErrors = [];
   page.on('pageerror', (error) => pageErrors.push(error.message));
   const response = await page.goto(origin + '/compare.html');
