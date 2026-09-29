@@ -1,0 +1,58 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="description" content="Multi-Model Evidence Lab: compare synthetic demos or operator-approved AI providers side by side.">
+  <title>Evidence Lab · AI Workbench</title>
+  <link rel="stylesheet" href="/compare.css">
+  <script src="/compare.js" defer></script>
+</head>
+<body>
+<a class="skip" href="#main">Skip to comparison workspace</a>
+<header class="topbar">
+  <div class="brand"><span class="mark" aria-hidden="true">◈</span><div><strong>Evidence Lab</strong><span>part of Open Source AI Workbench</span></div></div>
+  <div class="top-actions"><span id="modeIndicator" class="pill">Checking runtime</span><a href="/">← Workbench</a></div>
+</header>
+<main id="main" class="shell">
+  <section class="intro" aria-labelledby="headline">
+    <div class="eyebrow">MULTI-MODEL WORKSPACE <span>· ORIGINAL / CLEAN-ROOM</span></div>
+    <h1 id="headline">One question.<br><em>Four different lenses.</em></h1>
+    <p>Run independent answers side by side. See what each model actually returned, where results differ, and which conclusions still need outside evidence.</p>
+    <div class="intro-tags"><span>Independent response streams</span><span>Partial-failure isolation</span><span>Exportable comparison</span></div>
+  </section>
+  <div class="workspace">
+    <aside class="controls" aria-label="Comparison settings">
+      <div class="section-head"><span class="step">01</span><h2>Configure run</h2></div>
+      <label for="apiKey">Workspace access key <small>(only needed on protected installations)</small></label>
+      <input id="apiKey" type="password" autocomplete="off" placeholder="Optional operator key" aria-describedby="keyNote">
+      <small id="keyNote" class="hint">Kept in this tab's memory; never written to browser storage or exports.</small>
+      <div class="mode-switch" role="group" aria-label="Execution mode">
+        <button id="demoMode" class="selected" type="button" aria-pressed="true">Synthetic demo</button>
+        <button id="liveMode" type="button" aria-pressed="false" disabled>Live providers</button>
+      </div>
+      <p id="modeNotice" class="notice">Demo mode is executable and free of external AI calls. Its outputs are synthetic, not actual vendor responses.</p>
+      <div class="field-title"><label id="modelLabel">Select models</label><span id="selectedCount">0 / 4</span></div>
+      <div id="models" class="models" role="group" aria-labelledby="modelLabel"><p class="hint">Loading catalog…</p></div>
+      <label class="consent" id="consentWrap" hidden><input id="consent" type="checkbox"> I authorize sending this prompt to each selected third-party provider. Provider retention and processing policies may differ.</label>
+      <button id="refresh" type="button" class="subtle">↻ Refresh available providers</button>
+    </aside>
+    <section class="composer" aria-labelledby="promptTitle">
+      <div class="section-head"><span class="step">02</span><h2 id="promptTitle">Ask once</h2></div>
+      <form id="compareForm">
+        <label for="prompt" class="sr-only">Prompt</label>
+        <textarea id="prompt" maxlength="4000" required rows="7" placeholder="What would you like the models to help you reason about? Try a product architecture decision, code review question, or research problem."></textarea>
+        <div class="composer-foot"><span id="charCount">0 / 4000 characters</span><button type="button" id="example" class="text-button">Insert example</button></div>
+        <div class="run-actions"><button type="submit" id="run" class="primary">↗ Run comparison</button><button type="button" id="cancel" class="secondary" disabled>Cancel</button></div>
+        <p class="hint" id="status" role="status" aria-live="polite">Ready when you are.</p>
+      </form>
+      <div class="trust"><strong>No artificial consensus.</strong><p>Different models repeating a claim does not verify that claim. Export preserves each answer separately, with provider and completion status.</p></div>
+    </section>
+  </div>
+  <section class="results-section" aria-labelledby="resultsTitle">
+    <div class="results-heading"><div><span class="eyebrow">03 · EVIDENCE VIEW</span><h2 id="resultsTitle">Response comparison</h2></div><div class="result-actions"><button id="copy" type="button" disabled>Copy Markdown</button><button id="export" type="button" disabled>Export JSON</button></div></div>
+    <div id="results" class="results" aria-live="off"><div class="empty"><div class="empty-icon" aria-hidden="true">▧</div><h3>Your comparison will appear here</h3><p>Choose your models, submit one prompt, and watch each result arrive independently.</p></div></div>
+    <div id="summary" class="summary" hidden><span class="eyebrow">COMPARISON NOTES</span><p id="summaryText"></p><p class="hint">Not fact-checking, independent-source verification, or paid-provider certification.</p></div>
+  </section>
+</main>
+<footer>RE-334 · Original independent implementation · <span id="footerMode">Session-only comparison</span></footer>
+</body></html>
