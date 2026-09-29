@@ -3,6 +3,7 @@ import { providerStatus } from './providers.mjs';
 import { authorize, rateLimit, safeJsonSize } from './security.mjs';
 import { listRuns } from './storage.mjs';
 import { executeWorkflow } from './workflows.mjs';
+import { catalogResponse } from './compare/http.mjs';
 
 function headersToObject(headers) {
   if (!headers) return {};
@@ -29,6 +30,7 @@ export async function handleApi({ method, path, headers = {}, body = null, clien
   if (!rate.ok) return { status: 429, body: { error: 'Rate limit exceeded' } };
   if (!safeJsonSize(body)) return { status: 413, body: { error: 'Request body too large' } };
 
+  if (method === 'GET' && path === '/api/compare/catalog') return catalogResponse(headersToObject(headers));
   if (method === 'GET' && path === '/api/health') return { status: 200, body: healthPayload() };
   if (method === 'GET' && path === '/api/capabilities') return { status: 200, body: { capabilities, providers: providerStatus(), authMode: auth.mode } };
   if (method === 'GET' && path === '/api/runs') return { status: 200, body: { runs: await listRuns(25) } };
