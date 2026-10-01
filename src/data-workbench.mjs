@@ -139,7 +139,7 @@ function classify(query) {
     return { ok: false, code: 'DENY_MULTI_STATEMENT', normalized, statementType: 'unknown' };
   }
   const upper = withoutTrailing.toUpperCase();
-  const forbidden = /\b(INSERT|UPDATE|DELETE|DROP|ALTER|CREATE|TRUNCATE|MERGE|UPSERT|REPLACE|COPY|ATTACH|DETACH|PRAGMA|VACUUM|REINDEX|GRANT|REVOKE|CALL|EXEC|EXECUTE|LOAD|INSTALL|EXPORT|IMPORT)\b/;
+  const forbidden = /\b(INSERT|UPDATE|DELETE|DROP|ALTER|CREATE|TRUNCATE|MERGE|UPSERT|REPLACE|COPY|ATTACH|DETACH|PRAGMA|VACUUM|REINDEX|GRANT|REVOKE|CALL|EXEC|EXECUTE|LOAD|INSTALL|EXPORT|IMPORT|READ_CSV|READ_PARQUET|READ_JSON|SQLITE_SCAN|POSTGRES_SCAN|GLOB)\b/;
   if (forbidden.test(upper)) {
     return { ok: false, code: 'DENY_MUTATION_OR_EXTERNAL_OPERATION', normalized, statementType: 'write-or-admin' };
   }
