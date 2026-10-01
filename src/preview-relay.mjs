@@ -97,6 +97,19 @@ function filteredResponseHeaders(headers = {}) {
   return out;
 }
 
+function preparePublicResponse(session, response) {
+  const headers = { ...response.headers };
+  const contentType = String(headers['content-type'] || '').toLowerCase();
+  if (!contentType.includes('text/html') || headers['content-encoding']) return response;
+  const marker = 'src="/__preview/widget.js"';
+  const text = response.body.toString('utf8');
+  if (!text.includes(marker)) return response;
+  const publicWidget = `src="/t/${encodeURIComponent(session.slug)}/__preview/widget.js"`;
+  const body = Buffer.from(text.split(marker).join(publicWidget));
+  delete headers['content-length'];
+  return { ...response, headers, body };
+}
+
 function sessionPublicView(session) {
   return {
     sessionId: session.id,
@@ -302,7 +315,7 @@ export function createPreviewRelay({
       session.pending.set(requestId, { resolve, reject, timer });
     });
     deliver(session, request);
-    const response = await responsePromise;
+    const response = preparePublicResponse(session, await responsePromise);
     res.writeHead(response.status, response.headers);
     res.end(response.body);
     return true;
