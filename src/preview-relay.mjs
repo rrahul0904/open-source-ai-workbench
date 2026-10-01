@@ -8,6 +8,47 @@ function token(size = 24) {
   return randomBytes(size).toString('base64url');
 }
 
+function isLoopbackHostname(hostname) {
+  const value = hostname.replace(/^\[|\]$/g, '').toLowerCase();
+  return value === 'localhost' || value === '::1' || value.startsWith('127.');
+}
+
+function safeRelayUrl(value) {
+  const url = new URL(value);
+  if (!['http:', 'https:'].includes(url.protocol)) throw new TypeError('relayUrl must use http or https');
+  if (url.username || url.password) throw new TypeError('relayUrl credentials are not allowed in the URL');
+  if (url.protocol !== 'https:' && !isLoopbackHostname(url.hostname)) {
+    throw new Error('Non-loopback relayUrl must use HTTPS');
+  }
+  return url;
+}
+
+function safePreviewUrl(value) {
+  const url = new URL(value);
+  if (!['http:', 'https:'].includes(url.protocol)) throw new TypeError('previewUrl must use http or https');
+  if (url.username || url.password) throw new TypeError('previewUrl credentials are not allowed in the URL');
+  if (!isLoopbackHostname(url.hostname)) throw new Error('previewUrl must be loopback-only');
+  return url;
+}
+
+function safePreviewTarget(preview, requestPath) {
+  const sentinel = new URL('http://relay-request.invalid/');
+  let parsed;
+  try {
+    parsed = new URL(String(requestPath || '/'), sentinel);
+  } catch {
+    throw Object.assign(new Error('Invalid tunneled request target'), { statusCode: 400 });
+  }
+  if (parsed.origin !== sentinel.origin) {
+    throw Object.assign(new Error('Absolute and scheme-relative tunneled targets are not allowed'), { statusCode: 400 });
+  }
+  const target = new URL(preview.origin);
+  target.pathname = parsed.pathname;
+  target.search = parsed.search;
+  target.hash = '';
+  return target;
+}
+
 function bearer(headers = {}) {
   const raw = String(headers.authorization || '');
   return raw.startsWith('Bearer ') ? raw.slice(7) : '';
@@ -312,8 +353,8 @@ async function parseJsonResponse(response) {
 
 export function createTunnelAgent({ relayUrl, operatorKey, previewUrl, ttlMs = 15 * 60_000, pollDelayMs = 25 } = {}) {
   if (!relayUrl || !operatorKey || !previewUrl) throw new TypeError('relayUrl, operatorKey and previewUrl are required');
-  const relay = new URL(relayUrl);
-  const preview = new URL(previewUrl);
+  const relay = safeRelayUrl(relayUrl);
+  const preview = safePreviewUrl(previewUrl);
   let session;
 
   async function register() {
@@ -324,7 +365,11 @@ export function createTunnelAgent({ relayUrl, operatorKey, previewUrl, ttlMs = 1
       body: JSON.stringify({ ttlMs })
     });
     const data = await parseJsonResponse(response);
-    session = { ...data, publicUrl: new URL(data.publicPath, relay).toString().replace(/\/$/, '') };
+    const publicTarget = new URL(String(data.publicPath || ''), relay);
+    if (publicTarget.origin !== relay.origin || !publicTarget.pathname.startsWith('/t/')) {
+      throw new Error('Relay returned an invalid publicPath');
+    }
+    session = { ...data, publicUrl: publicTarget.toString().replace(/\/$/, '') };
     return session;
   }
 
@@ -335,7 +380,7 @@ export function createTunnelAgent({ relayUrl, operatorKey, previewUrl, ttlMs = 1
     const response = await fetch(pollUrl, { headers: { authorization: `Bearer ${session.agentToken}` } });
     if (response.status === 204) return false;
     const { request } = await parseJsonResponse(response);
-    const target = new URL(request.path, `${preview.origin}/`);
+    const target = safePreviewTarget(preview, request.path);
     const body = Buffer.from(request.bodyBase64 || '', 'base64');
     const headers = new Headers(request.headers || {});
     headers.delete('host');
