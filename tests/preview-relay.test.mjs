@@ -86,7 +86,11 @@ test('public GET traverses relay -> agent -> safe preview -> localhost app', asy
     const html = await response.text();
     assert.equal(response.status, 200);
     assert.match(html, /app/);
-    assert.match(html, /__preview\/widget\.js/);
+    const publicPath = new URL(ctx.session.publicUrl).pathname;
+    assert.equal(html.includes('src="' + publicPath + '/__preview/widget.js"'), true);
+    const widget = await fetch(ctx.session.publicUrl + '/__preview/widget.js');
+    assert.equal(widget.status, 200);
+    assert.match(await widget.text(), /controlBase/);
     const receipt = ctx.runtime.listRequests().at(-1);
     assert.equal(receipt.path, '/hello?x=1');
     assert.equal(receipt.decision, 'forwarded');
