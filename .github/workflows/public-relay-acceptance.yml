@@ -28,7 +28,7 @@ jobs:
       - name: Download pinned cloudflared
         run: |
           curl --fail --silent --show-error --location --retry 3             https://github.com/cloudflare/cloudflared/releases/download/2026.9.2/cloudflared-linux-amd64             --output /tmp/cloudflared
-          echo "03f1f25d1cc93b9ad6c60569d44060bc4f17ed97075760ed8cfca4b12dcd68cc  /tmp/cloudflared" | sha256sum --check -
+          echo "ea2c9bb2d5017a796b64bf36e605d727accf76a5500014bb12952ce11ae1f932  /tmp/cloudflared" | sha256sum --check -
           chmod +x /tmp/cloudflared
           /tmp/cloudflared --version
 
