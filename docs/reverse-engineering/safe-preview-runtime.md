@@ -208,3 +208,28 @@ Before tracker registration as a completed build:
 ## Tracker rule
 
 This source is **not yet registered as a completed reverse-engineering project** in the canonical spreadsheet. Issue #20 and the implementation branch are the working evidence surface. The canonical tracker should be updated only after the full research/build/verification gate is satisfied and a fresh canonical-ID collision check is performed.
+
+
+## Phase B implementation evidence — bounded relay transport
+
+Phase B now has an independently authored executable transport slice. It deliberately does **not** reproduce the upstream WebSocket relay. Instead, the local share agent keeps an outbound authenticated long-poll connection to a relay service, which is enough to prove the public-request routing contract without requiring inbound access to a developer machine.
+
+Implemented behavior:
+
+- operator-key-gated session creation;
+- cryptographically random public slugs and per-session agent tokens;
+- bounded session TTL with explicit expiration;
+- one outstanding long-poll per session;
+- bounded queued/pending requests and request/response bodies;
+- public request -> relay -> outbound agent -> local safe-preview -> localhost app -> response round trip;
+- public relay denial for local inspector/status controls;
+- public forwarding for only the feedback/widget controls needed by the injected client experience;
+- explicit agent response timeout;
+- per-session teardown;
+- public `/healthz` that exposes no session inventory;
+- one-command `npm run share` composition of the Phase A safe-preview policy plus relay agent;
+- relay service entrypoint via `npm run relay`.
+
+Focused Phase B tests cover relay health, end-to-end GET forwarding, end-to-end POST interception at the local safety boundary, selective control exposure, per-session agent authentication, and TTL expiry.
+
+This is still **not public-runtime evidence**. A local socket-level relay test proves the protocol and safety boundary, but not internet routing, TLS termination, hosting-provider behavior, multi-instance durability, WebSocket support, abuse resistance, or production availability. Those remain deployment/security gates.
