@@ -15,6 +15,7 @@
     "check": "node scripts/check.mjs",
     "smoke": "node scripts/smoke.mjs",
     "relay": "node scripts/relay.mjs",
-    "share": "node scripts/share.mjs"
+    "share": "node scripts/share.mjs",
+    "deploy:plan": "node scripts/deploy-plan.mjs"
   }
 }
