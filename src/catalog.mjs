@@ -90,6 +90,15 @@ export const capabilities = [
     inputs: ['connector', 'operation', 'payload']
   },
   {
+    id: 'data-workbench',
+    name: 'Data Workbench',
+    inspiredBy: 'LibreDB Studio + Tusk + DBFlux',
+    category: 'Data',
+    status: 'phase-a',
+    description: 'Governed read-only database workspace with capability-gated execution, synthetic schema/query fixtures and searchable receipts.',
+    inputs: ['query', 'connectionId', 'environment', 'adapterId', 'source']
+  },
+  {
     id: 'launch-campaign',
     name: 'Cross-capability Campaign',
     inspiredBy: 'Unified Workbench',
