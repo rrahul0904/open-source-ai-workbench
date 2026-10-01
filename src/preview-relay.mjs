@@ -270,6 +270,7 @@ export function createPreviewRelay({
   async function handler(req, res) {
     try {
       const url = new URL(req.url || '/', 'http://relay.local');
+      if (req.method === 'GET' && url.pathname === '/healthz') { json(res, 200, { ok: true, service: 'safe-preview-relay' }); return; }
       if (url.pathname.startsWith('/__relay/') && await handleControl(req, res, url)) return;
       if (await handlePublic(req, res, url)) return;
       json(res, 404, { error: 'Not found' });
