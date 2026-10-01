@@ -11,6 +11,24 @@ function isLoopbackHostname(hostname) {
   return value === 'localhost' || value === '::1' || value.startsWith('127.');
 }
 
+function safeUpstreamTarget(origin, requestPath) {
+  const sentinel = new URL('http://preview-request.invalid/');
+  let parsed;
+  try {
+    parsed = new URL(String(requestPath || '/'), sentinel);
+  } catch {
+    throw Object.assign(new Error('Invalid preview request target'), { statusCode: 400 });
+  }
+  if (parsed.origin !== sentinel.origin) {
+    throw Object.assign(new Error('Absolute and scheme-relative preview targets are not allowed'), { statusCode: 400 });
+  }
+  const target = new URL(origin);
+  target.pathname = parsed.pathname;
+  target.search = parsed.search;
+  target.hash = '';
+  return target;
+}
+
 function normalizeRule(rule) {
   if (!rule || typeof rule !== 'object') throw new TypeError('Mutation allowlist rules must be objects');
   const method = String(rule.method || '').toUpperCase();
@@ -170,6 +188,7 @@ export function createPreviewRuntime({
   if (!upstream) throw new TypeError('upstream is required');
   const upstreamUrl = new URL(upstream);
   if (!['http:', 'https:'].includes(upstreamUrl.protocol)) throw new TypeError('upstream must use http or https');
+  if (upstreamUrl.username || upstreamUrl.password) throw new TypeError('upstream credentials are not allowed in the URL');
   if (!allowRemoteUpstream && !isLoopbackHostname(upstreamUrl.hostname)) throw new Error('Phase A preview upstream must be loopback-only');
   if (!Number.isInteger(captureLimit) || captureLimit < 1) throw new TypeError('captureLimit must be a positive integer');
 
@@ -207,7 +226,7 @@ export function createPreviewRuntime({
   }
 
   async function fetchUpstream(method, requestPath, headers, body) {
-    const target = new URL(requestPath, `${upstreamUrl.origin}/`);
+    const target = safeUpstreamTarget(upstreamUrl.origin, requestPath);
     const init = { method, headers: headersForUpstream(headers), redirect: 'manual' };
     if (!SAFE_METHODS.has(method) && body?.length) init.body = body;
     const response = await fetch(target, init);
