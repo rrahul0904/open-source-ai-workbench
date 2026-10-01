@@ -258,3 +258,39 @@ Implemented:
 Focused tests cover deterministic manifests, secret-file refusal, root .ssh refusal, symlink refusal, bounded traversal, exact-SHA enforcement, builder detection, approval gating, source-change invalidation, receipt classification and insecure URL rejection.
 
 Real provider execution remains a separate runtime gate. A Railway verification project could not be provisioned because the connected account returned a free-plan resource-limit error, and no existing Railway project was repurposed.
+
+
+## Phase D implementation evidence — agent/MCP surface
+
+The agent-facing slice now exposes the independently authored preview/deploy contracts through a bounded MCP stdio server.
+
+Protocol posture:
+
+- supports the current MCP `2026-07-28` stateless era with `server/discover`, `tools/list`, and `tools/call`;
+- retains a bounded legacy `initialize` path for `2025-11-25` clients;
+- uses one JSON-RPC message per stdio line;
+- advertises tools only; no prompts, resources, sampling, elicitation or asynchronous task claims.
+
+Exposed tools:
+
+- `preview_policy_check` — pure policy evaluation;
+- `deploy_plan` — deterministic exact-SHA plan creation only;
+- `deploy_receipt_classify` — truthful receipt classification;
+- `share_start` — ephemeral public share creation;
+- `share_status`;
+- `share_requests` — bounded/redacted request receipts;
+- `share_feedback`;
+- `share_stop`.
+
+Safety boundaries:
+
+- deployment execution is deliberately **not** exposed through MCP because there is no verified durable provider adapter yet;
+- `deploy_plan` can read only within host-configured source roots;
+- the relay operator secret remains server-side and is never a tool argument or result;
+- `share_start` requires both `AGENT_RUNTIME_ALLOW_PUBLIC_SHARE=1` and per-call `confirmExternalShare=true`;
+- the upstream still passes through the Phase A loopback-only safe-preview runtime;
+- `share_stop` requires explicit per-call confirmation;
+- public sharing is single-session per MCP process and bounded by relay TTL;
+- no production-readiness, durable-hosting, isolation or scale-to-zero claim is derived from the agent surface.
+
+The implementation follows the current MCP lifecycle instead of freezing the design to the older handshake-only model. Current MCP `2026-07-28` removes the mandatory initialize handshake in favor of per-request metadata and `server/discover`; the server keeps a legacy initialize path only for compatibility.
