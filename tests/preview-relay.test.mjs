@@ -51,6 +51,16 @@ async function setup({ relay = {}, preview = {}, appHandler } = {}) {
   };
 }
 
+test('relay health endpoint is public but contains no session detail', async () => {
+  const ctx = await setup();
+  try {
+    const response = await fetch(`${ctx.relayUrl}/healthz`);
+    assert.equal(response.status, 200);
+    const body = await response.json();
+    assert.deepEqual(body, { ok: true, service: 'safe-preview-relay' });
+  } finally { await ctx.close(); }
+});
+
 test('public GET traverses relay -> agent -> safe preview -> localhost app', async () => {
   const ctx = await setup();
   try {
