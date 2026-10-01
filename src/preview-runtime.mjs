@@ -4,7 +4,13 @@ import { randomUUID } from 'node:crypto';
 const SAFE_METHODS = new Set(['GET', 'HEAD', 'OPTIONS']);
 const HOP_BY_HOP = new Set(['connection', 'keep-alive', 'proxy-authenticate', 'proxy-authorization', 'te', 'trailer', 'transfer-encoding', 'upgrade', 'host', 'content-length']);
 const SENSITIVE_HEADERS = new Set(['authorization', 'cookie', 'set-cookie', 'x-api-key', 'x-auth-token', 'proxy-authorization']);
+const SENSITIVE_HEADER_PATTERN = /(authorization|cookie|api[-_]?key|access[-_]?token|auth[-_]?token|secret)/i;
 const CONTROL_PREFIX = '/__preview';
+
+function isSensitiveHeaderName(name) {
+  const lower = String(name).toLowerCase();
+  return SENSITIVE_HEADERS.has(lower) || SENSITIVE_HEADER_PATTERN.test(lower);
+}
 
 function isLoopbackHostname(hostname) {
   const value = hostname.replace(/^\[|\]$/g, '').toLowerCase();
@@ -56,7 +62,7 @@ export function redactHeaders(headers = {}) {
   const entries = typeof headers.entries === 'function' ? headers.entries() : Object.entries(headers);
   for (const [key, raw] of entries) {
     const lower = String(key).toLowerCase();
-    if (SENSITIVE_HEADERS.has(lower)) {
+    if (isSensitiveHeaderName(lower)) {
       result[lower] = '[REDACTED]';
       continue;
     }
@@ -69,7 +75,7 @@ function headersForReplay(headers = {}) {
   const result = {};
   for (const [key, raw] of Object.entries(headers)) {
     const lower = key.toLowerCase();
-    if (SENSITIVE_HEADERS.has(lower) || HOP_BY_HOP.has(lower)) continue;
+    if (isSensitiveHeaderName(lower) || HOP_BY_HOP.has(lower)) continue;
     result[lower] = Array.isArray(raw) ? raw.join(', ') : String(raw ?? '');
   }
   return result;
