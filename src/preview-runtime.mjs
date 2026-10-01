@@ -282,7 +282,11 @@ export function createPreviewRuntime({
 
   async function handler(req, res) {
     try {
-      const url = new URL(req.url || '/', 'http://preview.local');
+      const rawTarget = req.url || '/';
+      if (!rawTarget.startsWith('/') || rawTarget.startsWith('//') || rawTarget.includes('\\')) {
+        throw Object.assign(new Error('Preview requests must use a local origin-form target'), { statusCode: 400 });
+      }
+      const url = new URL(rawTarget, 'http://preview.local');
       if (url.pathname.startsWith(CONTROL_PREFIX) && await handleControl(req, res, url)) return;
 
       const method = String(req.method || 'GET').toUpperCase();
