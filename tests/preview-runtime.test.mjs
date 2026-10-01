@@ -236,7 +236,7 @@ test('scheme-relative request targets cannot escape the configured loopback upst
       const result = await rawRequest(previewUrl, `//127.0.0.1:${attackerPort}/escape`);
       assert.equal(result.status, 400);
       assert.equal(attackerHits, 0);
-      assert.match(result.body, /scheme-relative/);
+      assert.match(result.body, /origin-form/);
     });
   } finally {
     await close(attacker);
