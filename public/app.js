@@ -10,6 +10,7 @@ const samples = {
   'osint-graph': { entities: [{ id: 'org-1', type: 'organization', label: 'Example Corp' }, { id: 'domain-1', type: 'domain', label: 'example.org' }], relationships: [] },
   'engineering-agent': { goal: 'Ship a production-ready workflow feature with exact verification evidence.' },
   'connector-runtime': { connector: 'demo-connector', operation: 'sync', payload: { records: 3 } },
+  'data-workbench': { connectionId: 'demo-data', environment: 'development', adapterId: 'synthetic-relational', source: 'human', query: "SELECT department, COUNT(*) AS employee_count FROM employees GROUP BY department ORDER BY employee_count DESC" },
   'launch-campaign': { topic: 'AI agents for data engineering', audience: 'senior data architects', durationSeconds: 24 }
 };
 
