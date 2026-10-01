@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - reverse/public-preview-relay
+      - reverse/preview-security-release
   workflow_dispatch:
 
 permissions:
@@ -50,7 +51,15 @@ jobs:
           done
           test -n "$RELAY_URL"
           echo "RELAY_URL=$RELAY_URL" >> "$GITHUB_ENV"
-          echo "ephemeral TLS ingress established"
+          for i in {1..60}; do
+            if curl --fail --silent --show-error --max-time 5 "$RELAY_URL/healthz" >/tmp/public-health.json 2>/tmp/public-health.err; then
+              break
+            fi
+            sleep 1
+          done
+          test -s /tmp/public-health.json
+          grep -q '"service":"safe-preview-relay"' /tmp/public-health.json
+          echo "ephemeral TLS ingress established and publicly resolvable"
 
       - name: Start local fixture and outbound share agent
         run: |
@@ -68,7 +77,8 @@ jobs:
         run: |
           curl --fail --silent --show-error --retry 5 --retry-all-errors "$PUBLIC_PREVIEW_URL/" > /tmp/home.html
           grep -q "public relay acceptance fixture" /tmp/home.html
-          grep -q "/__preview/widget.js" /tmp/home.html
+          PUBLIC_PATH="$(node -e 'process.stdout.write(new URL(process.env.PUBLIC_PREVIEW_URL).pathname)')"
+          grep -F "src=\"$PUBLIC_PATH/__preview/widget.js\"" /tmp/home.html
 
           curl --fail --silent --show-error --retry 3             --dump-header /tmp/post.headers             --output /tmp/post.body             --request POST             --header 'content-type: application/json'             --data '{"value":1}'             "$PUBLIC_PREVIEW_URL/api/save"
           grep -qi '^x-preview-demo-blocked: 1' /tmp/post.headers
@@ -76,7 +86,8 @@ jobs:
 
           test "$(curl --fail --silent --show-error "$PUBLIC_PREVIEW_URL/write-count")" = "0"
           test "$(curl --silent --show-error --output /tmp/inspect.body --write-out '%{http_code}' "$PUBLIC_PREVIEW_URL/__preview/requests")" = "404"
-          curl --fail --silent --show-error "$PUBLIC_PREVIEW_URL/__preview/widget.js" | grep -q "Preview feedback"
+          curl --fail --silent --show-error "$PUBLIC_PREVIEW_URL/__preview/widget.js" | tee /tmp/widget.js | grep -q "Preview feedback"
+          grep -q "controlBase" /tmp/widget.js
           curl --fail --silent --show-error             --request POST             --header 'content-type: application/json'             --data '{"message":"public acceptance","path":"/"}'             "$PUBLIC_PREVIEW_URL/__preview/feedback" | grep -q '"ok":true'
 
           echo "public relay acceptance: HTTPS GET, blocked POST, zero upstream writes, private inspector, widget and feedback passed"
