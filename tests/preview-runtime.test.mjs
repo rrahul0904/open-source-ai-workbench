@@ -54,10 +54,19 @@ test('demo policy denies mutations unless method and route are explicitly allowe
 });
 
 test('sensitive request headers are redacted from receipts', () => {
-  const redacted = redactHeaders({ authorization: 'Bearer secret', cookie: 'session=secret', 'x-api-key': 'secret', accept: 'text/html' });
+  const redacted = redactHeaders({
+    authorization: 'Bearer secret',
+    cookie: 'session=secret',
+    'x-api-key': 'secret',
+    'x-client-secret': 'secret',
+    'x-access-token': 'secret',
+    accept: 'text/html'
+  });
   assert.equal(redacted.authorization, '[REDACTED]');
   assert.equal(redacted.cookie, '[REDACTED]');
   assert.equal(redacted['x-api-key'], '[REDACTED]');
+  assert.equal(redacted['x-client-secret'], '[REDACTED]');
+  assert.equal(redacted['x-access-token'], '[REDACTED]');
   assert.equal(redacted.accept, 'text/html');
 });
 
