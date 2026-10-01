@@ -233,3 +233,28 @@ Implemented behavior:
 Focused Phase B tests cover relay health, end-to-end GET forwarding, end-to-end POST interception at the local safety boundary, selective control exposure, per-session agent authentication, and TTL expiry.
 
 This is still **not public-runtime evidence**. A local socket-level relay test proves the protocol and safety boundary, but not internet routing, TLS termination, hosting-provider behavior, multi-instance durability, WebSocket support, abuse resistance, or production availability. Those remain deployment/security gates.
+
+
+## Phase C implementation evidence — exact-plan deploy contracts
+
+The durable-deploy slice now implements provider-neutral planning and execution contracts without claiming a real hosted deployment.
+
+Implemented:
+
+- deployment source traversal is explicit-root, deterministic and bounded by file count, per-file size and aggregate size;
+- symlinks are rejected;
+- .git/node_modules/cache directories are excluded from source manifests;
+- secret-like paths such as .env*, private-key formats, credential files and .ssh material are rejected rather than silently uploaded;
+- every plan is bound to an exact 40-character Git SHA plus a deterministic SHA-256 file manifest digest;
+- Dockerfile and Railpack are the supported builder contracts; automatic detection prefers an explicit Dockerfile;
+- environment configuration accepts **names only** at planning time, never secret values;
+- CPU, memory and timeout budgets are explicit and bounded;
+- executing a deployment requires an HMAC-bound approval for the exact plan digest;
+- source is re-inspected immediately before provider invocation; any post-approval source mutation invalidates the operation;
+- provider receipts are normalized and public URLs must use HTTPS;
+- a provider state of `ready` does not automatically imply production readiness, isolation or scale-to-zero;
+- `npm run deploy:plan` exposes the safe planning surface.
+
+Focused tests cover deterministic manifests, secret-file refusal, root .ssh refusal, symlink refusal, bounded traversal, exact-SHA enforcement, builder detection, approval gating, source-change invalidation, receipt classification and insecure URL rejection.
+
+Real provider execution remains a separate runtime gate. A Railway verification project could not be provisioned because the connected account returned a free-plan resource-limit error, and no existing Railway project was repurposed.
