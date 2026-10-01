@@ -150,6 +150,9 @@ export function injectFeedbackWidget(html) {
 
 const WIDGET_JS = `(() => {
   if (document.querySelector('[data-agent-preview-feedback-button]')) return;
+  const loader = document.currentScript || document.querySelector('script[data-agent-preview-feedback]');
+  const loaderUrl = loader ? new URL(loader.src, location.href) : new URL('/__preview/widget.js', location.href);
+  const controlBase = loaderUrl.pathname.replace(/\\/widget\\.js$/, '');
   const button = document.createElement('button');
   button.type = 'button';
   button.textContent = 'Feedback';
@@ -159,7 +162,7 @@ const WIDGET_JS = `(() => {
     const message = window.prompt('Preview feedback');
     if (!message) return;
     try {
-      const response = await fetch('/__preview/feedback', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ message, path: location.pathname + location.search }) });
+      const response = await fetch(`${controlBase}/feedback`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ message, path: location.pathname + location.search }) });
       if (!response.ok) throw new Error('feedback rejected');
       button.textContent = 'Sent';
       setTimeout(() => { button.textContent = 'Feedback'; }, 1200);
