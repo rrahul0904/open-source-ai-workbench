@@ -18,6 +18,24 @@ async function close(server) {
   await new Promise((resolve, reject) => server.close((error) => error ? reject(error) : resolve()));
 }
 
+async function rawRequest(origin, requestPath) {
+  const url = new URL(origin);
+  return new Promise((resolve, reject) => {
+    const req = http.request({
+      host: url.hostname,
+      port: url.port,
+      method: 'GET',
+      path: requestPath
+    }, (res) => {
+      const chunks = [];
+      res.on('data', (chunk) => chunks.push(chunk));
+      res.on('end', () => resolve({ status: res.statusCode, body: Buffer.concat(chunks).toString('utf8') }));
+    });
+    req.on('error', reject);
+    req.end();
+  });
+}
+
 async function setup({ relay = {}, preview = {}, appHandler } = {}) {
   const app = http.createServer(appHandler || ((req, res) => { res.writeHead(200, { 'content-type': 'text/html' }); res.end('<html><body>app</body></html>'); }));
   const appUrl = await listen(app);
@@ -123,4 +141,46 @@ test('session TTL expiration makes the public route unavailable', async () => {
     const response = await fetch(`${ctx.session.publicUrl}/after-expiry`);
     assert.equal(response.status, 410);
   } finally { await ctx.close(); }
+});
+
+
+test('non-loopback relay URLs require HTTPS and URL credentials are rejected', () => {
+  assert.throws(
+    () => createTunnelAgent({ relayUrl: 'http://example.com', operatorKey: 'operator-test-key', previewUrl: 'http://127.0.0.1:3000' }),
+    /must use HTTPS/
+  );
+  assert.throws(
+    () => createTunnelAgent({ relayUrl: 'https://user:pass@example.com', operatorKey: 'operator-test-key', previewUrl: 'http://127.0.0.1:3000' }),
+    /credentials are not allowed/
+  );
+});
+
+test('agent preview URL remains loopback-only', () => {
+  assert.throws(
+    () => createTunnelAgent({ relayUrl: 'https://relay.example.com', operatorKey: 'operator-test-key', previewUrl: 'https://example.com' }),
+    /loopback-only/
+  );
+});
+
+test('scheme-relative tunneled targets cannot escape the local preview origin', async () => {
+  let attackerHits = 0;
+  const attacker = http.createServer((req, res) => {
+    attackerHits += 1;
+    res.writeHead(200);
+    res.end('attacker');
+  });
+  const attackerUrl = await listen(attacker);
+  const attackerPort = new URL(attackerUrl).port;
+  const ctx = await setup();
+
+  try {
+    const publicPath = new URL(ctx.session.publicUrl).pathname;
+    const result = await rawRequest(ctx.relayUrl, `${publicPath}//127.0.0.1:${attackerPort}/escape`);
+    assert.equal(result.status, 502);
+    assert.equal(attackerHits, 0);
+    assert.match(result.body, /Local preview unavailable/);
+  } finally {
+    await ctx.close();
+    await close(attacker);
+  }
 });
