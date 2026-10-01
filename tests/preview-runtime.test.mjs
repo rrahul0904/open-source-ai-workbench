@@ -17,6 +17,24 @@ async function close(server) {
   await new Promise((resolve, reject) => server.close((error) => error ? reject(error) : resolve()));
 }
 
+async function rawRequest(origin, requestPath) {
+  const url = new URL(origin);
+  return new Promise((resolve, reject) => {
+    const req = http.request({
+      host: url.hostname,
+      port: url.port,
+      method: 'GET',
+      path: requestPath
+    }, (res) => {
+      const chunks = [];
+      res.on('data', (chunk) => chunks.push(chunk));
+      res.on('end', () => resolve({ status: res.statusCode, body: Buffer.concat(chunks).toString('utf8') }));
+    });
+    req.on('error', reject);
+    req.end();
+  });
+}
+
 async function withRuntime(upstreamHandler, options, fn) {
   const upstream = http.createServer(upstreamHandler);
   const upstreamUrl = await listen(upstream);
@@ -190,4 +208,37 @@ test('mutation replay remains doubly gated', async () => {
 
 test('remote upstreams are rejected by default', () => {
   assert.throws(() => createPreviewRuntime({ upstream: 'https://example.com' }), /loopback-only/);
+});
+
+
+test('upstream URLs cannot embed credentials', () => {
+  assert.throws(
+    () => createPreviewRuntime({ upstream: 'http://user:password@127.0.0.1:3000' }),
+    /credentials are not allowed/
+  );
+});
+
+test('scheme-relative request targets cannot escape the configured loopback upstream', async () => {
+  let attackerHits = 0;
+  const attacker = http.createServer((req, res) => {
+    attackerHits += 1;
+    res.writeHead(200);
+    res.end('attacker');
+  });
+  const attackerUrl = await listen(attacker);
+  const attackerPort = new URL(attackerUrl).port;
+
+  try {
+    await withRuntime((req, res) => {
+      res.writeHead(200, { 'content-type': 'text/plain' });
+      res.end('upstream');
+    }, {}, async ({ previewUrl }) => {
+      const result = await rawRequest(previewUrl, `//127.0.0.1:${attackerPort}/escape`);
+      assert.equal(result.status, 400);
+      assert.equal(attackerHits, 0);
+      assert.match(result.body, /scheme-relative/);
+    });
+  } finally {
+    await close(attacker);
+  }
 });
