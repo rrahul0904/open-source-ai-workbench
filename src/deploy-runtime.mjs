@@ -34,7 +34,8 @@ function isSecretPath(relativePath) {
   if (SECRET_BASENAMES.has(basename)) return true;
   if (basename.startsWith('.env.')) return true;
   if (SECRET_EXTENSIONS.has(path.posix.extname(basename))) return true;
-  return normalized.toLowerCase().includes('/.ssh/');
+  const lower = normalized.toLowerCase();
+  return lower.startsWith('.ssh/') || lower.includes('/.ssh/');
 }
 
 function normalizeRevision(revision) {
