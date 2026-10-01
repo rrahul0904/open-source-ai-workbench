@@ -1,6 +1,7 @@
 import crypto from 'node:crypto';
 import { getCapability } from './catalog.mjs';
 import { synthesizeDemoWav } from './audio.mjs';
+import { redactDataWorkbenchRunInput, runDataWorkbench } from './data-workbench.mjs';
 import { demoMarketSnapshot, executeConfiguredConnector, generateText } from './providers.mjs';
 import { requireApproval } from './security.mjs';
 import { saveRun } from './storage.mjs';
@@ -165,6 +166,10 @@ async function contentFactory(input) {
   };
 }
 
+async function dataWorkbench(input) {
+  return runDataWorkbench(input);
+}
+
 async function launchCampaign(input) {
   const topic = input.topic || 'AI workbench';
   const audience = input.audience || 'technical teams';
@@ -191,6 +196,7 @@ const handlers = {
   'osint-graph': osintGraph,
   'engineering-agent': engineeringAgent,
   'connector-runtime': connectorRuntime,
+  'data-workbench': dataWorkbench,
   'launch-campaign': launchCampaign
 };
 
@@ -199,6 +205,7 @@ export async function executeWorkflow(id, input = {}) {
   if (!capability || !handlers[id]) throw Object.assign(new Error(`Unknown workflow: ${id}`), { statusCode: 404 });
   const startedAt = new Date().toISOString();
   const start = performance.now();
+  const persistedInput = id === 'data-workbench' ? redactDataWorkbenchRunInput(input) : input;
   try {
     const output = await handlers[id](input);
     const run = {
@@ -209,7 +216,7 @@ export async function executeWorkflow(id, input = {}) {
       startedAt,
       completedAt: new Date().toISOString(),
       durationMs: Math.round(performance.now() - start),
-      input,
+      input: persistedInput,
       output
     };
     await saveRun(run);
@@ -223,7 +230,7 @@ export async function executeWorkflow(id, input = {}) {
       startedAt,
       completedAt: new Date().toISOString(),
       durationMs: Math.round(performance.now() - start),
-      input,
+      input: persistedInput,
       error: error instanceof Error ? error.message : String(error)
     };
     await saveRun(run);
