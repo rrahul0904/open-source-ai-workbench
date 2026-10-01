@@ -6,7 +6,7 @@ A clean-room, deployment-ready AI workspace that turns the SATNA_PROJECT open-so
 
 ## What is implemented
 
-The repository ships **11 executable workflows** covering the ten source capability tracks plus a cross-capability orchestrator:
+The repository ships **12 executable workflows** covering the ten source capability tracks plus a cross-capability orchestrator:
 
 - TradingAgents-style multi-agent market research council
 - LibreChat-style provider-abstracted chat
@@ -18,6 +18,7 @@ The repository ships **11 executable workflows** covering the ten source capabil
 - Flowsint-inspired OSINT entity/relationship graph workspace
 - agent-skills-inspired spec → plan → test → review → ship engineering agent
 - Nango-inspired normalized connector/action/sync runtime
+- Data Workbench: governed synthetic read-only database workflow with capability policy and receipts
 - Cross-capability campaign orchestration
 
 The product is intentionally **zero-secret runnable**. Demo mode is real executable software, not disabled UI: every workflow returns deterministic output and can be exercised through the browser or API. Optional live providers plug in through environment variables.
@@ -81,6 +82,7 @@ curl -s http://localhost:3000/api/workflows/run \
 - `WORKBENCH_API_KEY` can protect all APIs with bearer auth.
 - Live LLM execution is optional through an OpenAI-compatible endpoint.
 - Run history is in memory by default and can use Upstash Redis REST when configured.
+- Data Workbench Phase A uses synthetic relational data only; it accepts no live database credentials and makes no live-engine or production-readiness claim.
 - Synthetic finance values are clearly marked and are not investment advice.
 
 See [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) and [`docs/RELEASE.md`](docs/RELEASE.md).
