@@ -380,7 +380,21 @@ export function createTunnelAgent({ relayUrl, operatorKey, previewUrl, ttlMs = 1
     const response = await fetch(pollUrl, { headers: { authorization: `Bearer ${session.agentToken}` } });
     if (response.status === 204) return false;
     const { request } = await parseJsonResponse(response);
-    const target = safePreviewTarget(preview, request.path);
+    let target;
+    try {
+      target = safePreviewTarget(preview, request.path);
+    } catch {
+      const respondUrl = new URL('/__relay/agent/respond', relay);
+      respondUrl.searchParams.set('session', session.sessionId);
+      const bodyBuffer = Buffer.from(JSON.stringify({ error: 'Invalid tunneled request target' }));
+      const ack = await fetch(respondUrl, {
+        method: 'POST',
+        headers: { authorization: `Bearer ${session.agentToken}`, 'content-type': 'application/json' },
+        body: JSON.stringify({ requestId: request.id, status: 400, headers: { 'content-type': 'application/json; charset=utf-8' }, bodyBase64: bodyBuffer.toString('base64') })
+      });
+      await parseJsonResponse(ack);
+      return true;
+    }
     const body = Buffer.from(request.bodyBase64 || '', 'base64');
     const headers = new Headers(request.headers || {});
     headers.delete('host');
