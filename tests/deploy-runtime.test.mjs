@@ -41,6 +41,13 @@ test('secret-like files are rejected instead of silently shipped', async () => {
   } finally { await rm(root, { recursive: true, force: true }); }
 });
 
+test('root .ssh material is rejected', async () => {
+  const root = await fixture({ 'package.json': '{}', '.ssh/config': 'Host *' });
+  try {
+    await assert.rejects(() => inspectDeploymentSource(root), /Secret-like source path/);
+  } finally { await rm(root, { recursive: true, force: true }); }
+});
+
 test('symlinks are rejected', async () => {
   const root = await fixture();
   try {
