@@ -1,0 +1,92 @@
+name: Public relay acceptance
+
+on:
+  push:
+    branches:
+      - reverse/public-preview-relay
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  public-relay:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Verify repository first
+        run: npm test
+
+      - name: Prepare ephemeral relay key
+        run: echo "PREVIEW_RELAY_OPERATOR_KEY=acceptance-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}" >> "$GITHUB_ENV"
+
+      - name: Download pinned cloudflared
+        run: |
+          curl --fail --silent --show-error --location --retry 3             https://github.com/cloudflare/cloudflared/releases/download/2026.9.2/cloudflared-linux-amd64             --output /tmp/cloudflared
+          echo "03f1f25d1cc93b9ad6c60569d44060bc4f17ed97075760ed8cfca4b12dcd68cc  /tmp/cloudflared" | sha256sum --check -
+          chmod +x /tmp/cloudflared
+          /tmp/cloudflared --version
+
+      - name: Start relay and ephemeral public TLS ingress
+        run: |
+          PORT=8787 npm run relay > /tmp/relay.log 2>&1 &
+          echo $! > /tmp/relay.pid
+          for i in {1..30}; do
+            curl --fail --silent http://127.0.0.1:8787/healthz >/tmp/health.json && break
+            sleep 1
+          done
+          cat /tmp/health.json
+          /tmp/cloudflared tunnel --url http://127.0.0.1:8787 --no-autoupdate > /tmp/cloudflared.log 2>&1 &
+          echo $! > /tmp/cloudflared.pid
+          for i in {1..45}; do
+            RELAY_URL="$(grep -Eo 'https://[a-z0-9-]+\.trycloudflare\.com' /tmp/cloudflared.log | head -1 || true)"
+            if [ -n "$RELAY_URL" ]; then break; fi
+            sleep 1
+          done
+          test -n "$RELAY_URL"
+          echo "RELAY_URL=$RELAY_URL" >> "$GITHUB_ENV"
+          echo "ephemeral TLS ingress established"
+
+      - name: Start local fixture and outbound share agent
+        run: |
+          rm -f /tmp/public-preview-url
+          node scripts/public-relay-acceptance.mjs > /tmp/acceptance.log 2>&1 &
+          echo $! > /tmp/acceptance.pid
+          for i in {1..45}; do
+            test -s /tmp/public-preview-url && break
+            sleep 1
+          done
+          test -s /tmp/public-preview-url
+          echo "PUBLIC_PREVIEW_URL=$(cat /tmp/public-preview-url)" >> "$GITHUB_ENV"
+
+      - name: Verify real public HTTPS round trip and safety boundary
+        run: |
+          curl --fail --silent --show-error --retry 5 --retry-all-errors "$PUBLIC_PREVIEW_URL/" > /tmp/home.html
+          grep -q "public relay acceptance fixture" /tmp/home.html
+          grep -q "/__preview/widget.js" /tmp/home.html
+
+          curl --fail --silent --show-error --retry 3             --dump-header /tmp/post.headers             --output /tmp/post.body             --request POST             --header 'content-type: application/json'             --data '{"value":1}'             "$PUBLIC_PREVIEW_URL/api/save"
+          grep -qi '^x-preview-demo-blocked: 1' /tmp/post.headers
+          grep -q '"intercepted":true' /tmp/post.body
+
+          test "$(curl --fail --silent --show-error "$PUBLIC_PREVIEW_URL/write-count")" = "0"
+          test "$(curl --silent --show-error --output /tmp/inspect.body --write-out '%{http_code}' "$PUBLIC_PREVIEW_URL/__preview/requests")" = "404"
+          curl --fail --silent --show-error "$PUBLIC_PREVIEW_URL/__preview/widget.js" | grep -q "Preview feedback"
+          curl --fail --silent --show-error             --request POST             --header 'content-type: application/json'             --data '{"message":"public acceptance","path":"/"}'             "$PUBLIC_PREVIEW_URL/__preview/feedback" | grep -q '"ok":true'
+
+          echo "public relay acceptance: HTTPS GET, blocked POST, zero upstream writes, private inspector, widget and feedback passed"
+
+      - name: Diagnostic tails
+        if: always()
+        run: |
+          echo "--- relay ---"
+          tail -n 80 /tmp/relay.log 2>/dev/null || true
+          echo "--- cloudflared ---"
+          tail -n 80 /tmp/cloudflared.log 2>/dev/null || true
+          echo "--- acceptance ---"
+          tail -n 80 /tmp/acceptance.log 2>/dev/null || true
