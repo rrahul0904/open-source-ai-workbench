@@ -50,7 +50,15 @@ jobs:
           done
           test -n "$RELAY_URL"
           echo "RELAY_URL=$RELAY_URL" >> "$GITHUB_ENV"
-          echo "ephemeral TLS ingress established"
+          for i in {1..60}; do
+            if curl --fail --silent --show-error --max-time 5 "$RELAY_URL/healthz" >/tmp/public-health.json 2>/tmp/public-health.err; then
+              break
+            fi
+            sleep 1
+          done
+          test -s /tmp/public-health.json
+          grep -q '"service":"safe-preview-relay"' /tmp/public-health.json
+          echo "ephemeral TLS ingress established and publicly resolvable"
 
       - name: Start local fixture and outbound share agent
         run: |
