@@ -176,9 +176,9 @@ test('scheme-relative tunneled targets cannot escape the local preview origin', 
   try {
     const publicPath = new URL(ctx.session.publicUrl).pathname;
     const result = await rawRequest(ctx.relayUrl, `${publicPath}//127.0.0.1:${attackerPort}/escape`);
-    assert.equal(result.status, 502);
+    assert.equal(result.status, 400);
     assert.equal(attackerHits, 0);
-    assert.match(result.body, /Local preview unavailable/);
+    assert.match(result.body, /Invalid tunneled request target/);
   } finally {
     await ctx.close();
     await close(attacker);
