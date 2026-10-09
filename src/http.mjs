@@ -16,7 +16,7 @@ function headersToObject(headers) {
 
 function evidenceApiError(error) {
   const message = error?.message || 'Evidence document request failed';
-  const badRequest = /required|unsupported|empty|exceeds|invalid|no structural units/i.test(message);
+  const badRequest = /required|unsupported|empty|exceeds|invalid|no structural units|no evidence/i.test(message);
   const notFound = /not found|does not resolve/i.test(message);
   return { status: badRequest ? 400 : notFound ? 404 : 500, body: { error: message } };
 }
@@ -49,6 +49,26 @@ export async function handleApi({ method, path, headers = {}, body = null, clien
   }
   if (method === 'GET' && path === '/api/documents/snapshot') {
     return { status: 200, body: { authMode: auth.mode, snapshot: evidenceDocuments.snapshot() } };
+  }
+  if (method === 'POST' && path === '/api/documents/flow') {
+    try {
+      // Deliberately scoped to one invocation so preview/serverless proof does not depend on warm-instance memory.
+      const engine = new EvidenceDocumentEngine();
+      const receipt = engine.ingestAndIndex({
+        tenantId: body?.tenantId,
+        documentId: body?.documentId,
+        sourceKind: body?.sourceKind || 'serverless-uat',
+        mediaType: body?.mediaType || 'text/plain',
+        content: body?.content,
+      });
+      const retrieval = engine.retrieve({ tenantId: body?.tenantId, query: body?.query, limit: body?.limit });
+      const top = retrieval.hits[0];
+      if (!top) throw new Error('no evidence hit matched the query');
+      const evidence = engine.resolveCitation({ tenantId: body?.tenantId, citation: top.evidenceCitation });
+      return { status: 200, body: { authMode: auth.mode, receipt, retrieval, evidence, snapshot: engine.snapshot() } };
+    } catch (error) {
+      return evidenceApiError(error);
+    }
   }
   if (method === 'POST' && path === '/api/documents/ingest') {
     try {
