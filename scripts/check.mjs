@@ -6,7 +6,7 @@ import { executeWorkflow } from '../src/workflows.mjs';
 const required = [
   'package.json','server.mjs','public/index.html','public/app.js','public/styles.css',
   'api/health.js','api/capabilities.js','api/runs.js','api/acceptance.js','api/workflows/run.js',
-  'api/documents/flow.js','src/document-intelligence.mjs','src/document-store.mjs','scripts/document-restart-worker.mjs',
+  'api/documents/flow.js','api/documents/acceptance.js','src/document-intelligence.mjs','src/document-store.mjs','scripts/document-restart-worker.mjs',
   'vercel.json','Dockerfile','.github/workflows/ci.yml'
 ];
 for (const file of required) await fs.access(path.resolve(file));
@@ -16,4 +16,4 @@ for (const capability of capabilities) {
   const run = await executeWorkflow(capability.id, sample);
   if (run.status !== 'succeeded') throw new Error(`${capability.id} did not succeed`);
 }
-console.log(`check: ${capabilities.length} capabilities executable; evidence runtime, restart adapter and deployment files present`);
+console.log(`check: ${capabilities.length} capabilities executable; evidence runtime, restart adapter, preview acceptance and deployment files present`);
