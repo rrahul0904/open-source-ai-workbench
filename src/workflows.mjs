@@ -1,6 +1,7 @@
 import crypto from 'node:crypto';
 import { getCapability } from './catalog.mjs';
 import { synthesizeDemoWav } from './audio.mjs';
+import { runDataWorkbench } from './data-workbench.mjs';
 import { demoMarketSnapshot, executeConfiguredConnector, generateText } from './providers.mjs';
 import { requireApproval } from './security.mjs';
 import { saveRun } from './storage.mjs';
@@ -191,6 +192,7 @@ const handlers = {
   'osint-graph': osintGraph,
   'engineering-agent': engineeringAgent,
   'connector-runtime': connectorRuntime,
+  'data-workbench': runDataWorkbench,
   'launch-campaign': launchCampaign
 };
 
