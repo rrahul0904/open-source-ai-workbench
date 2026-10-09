@@ -153,12 +153,10 @@ export class EvidenceDocumentEngine {
 
   ingestAndIndex(input) {
     const artifact = createDocumentArtifact(input);
-    const documents = this.#tenantMap(this.#documents, artifact.tenantId);
-    const indexes = this.#tenantMap(this.#indexes, artifact.tenantId);
-    const existing = documents.get(artifact.sourceDigest);
+    const existing = this.#documents.get(artifact.tenantId)?.get(artifact.sourceDigest);
     if (existing) return { ...existing.receipt, idempotentReplay: true };
 
-    // Build every derived artifact before publishing any state: no partial-ready index.
+    // Build every derived artifact before publishing any tenant/index state.
     const parseReceipt = parseDocument(artifact);
     const chunkPlan = createChunkPlan(parseReceipt);
     const indexId = `idx_${sha256(`${artifact.tenantId}:${chunkPlan.chunkSetDigest}`).slice(0, 20)}`;
@@ -173,6 +171,8 @@ export class EvidenceDocumentEngine {
     });
     const receipt = Object.freeze({ artifact: { ...artifact, content: undefined }, parseReceipt, chunkPlan: { ...chunkPlan, chunks: undefined }, indexReceipt, idempotentReplay: false });
 
+    const documents = this.#tenantMap(this.#documents, artifact.tenantId);
+    const indexes = this.#tenantMap(this.#indexes, artifact.tenantId);
     documents.set(artifact.sourceDigest, { artifact, receipt });
     indexes.set(indexId, { artifact, parseReceipt, chunkPlan, indexReceipt });
     return receipt;
