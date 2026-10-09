@@ -45,6 +45,19 @@ test('HTTP health and workflow API operate without secrets', async () => {
   assert.equal(acceptance.body.externalActionTaken, false);
 });
 
+test('synthetic preview acceptance returns a compact verified evidence receipt', async () => {
+  const response = await handleApi({ method: 'GET', path: '/api/documents/acceptance', clientKey: 'documents-preview-acceptance-test' });
+  assert.equal(response.status, 200);
+  assert.equal(response.body.ok, true);
+  assert.equal(response.body.roadmap, 'RE-389');
+  assert.equal(response.body.fixture, 'synthetic-preview-acceptance-v1');
+  assert.equal(response.body.verified, true);
+  assert.ok(response.body.sourceDigest);
+  assert.ok(response.body.snapshotDigest);
+  assert.ok(response.body.hitCount > 0);
+  assert.match(response.body.evidenceText, /North/);
+});
+
 test('stateless evidence flow completes ingest, retrieval and citation verification in one invocation', async () => {
   const response = await handleApi({
     method: 'POST',
