@@ -45,6 +45,44 @@ test('HTTP health and workflow API operate without secrets', async () => {
   assert.equal(acceptance.body.externalActionTaken, false);
 });
 
+test('stateless evidence flow completes ingest, retrieval and citation verification in one invocation', async () => {
+  const response = await handleApi({
+    method: 'POST',
+    path: '/api/documents/flow',
+    clientKey: 'documents-flow-test',
+    body: {
+      tenantId: 'flow-tenant-a',
+      documentId: 'flow-note',
+      mediaType: 'text/markdown',
+      content: '# Quarterly note\nNorth generated 42 units.\n--- page:2 ---\n| Region | Units |\n| --- | --- |\n| South | 17 |',
+      query: 'North 42 units',
+    },
+  });
+  assert.equal(response.status, 200);
+  assert.equal(response.body.receipt.indexReceipt.status, 'complete');
+  assert.ok(response.body.retrieval.hits.length > 0);
+  assert.equal(response.body.evidence.verified, true);
+  assert.equal(response.body.evidence.sourceDigest, response.body.retrieval.hits[0].sourceDigest);
+  assert.equal(response.body.snapshot.tenants.length, 1);
+  assert.ok(response.body.snapshot.digest);
+});
+
+test('stateless evidence flow fails closed when the query has no evidence', async () => {
+  const response = await handleApi({
+    method: 'POST',
+    path: '/api/documents/flow',
+    clientKey: 'documents-flow-nohit-test',
+    body: {
+      tenantId: 'flow-tenant-nohit',
+      mediaType: 'text/plain',
+      content: 'North generated 42 units.',
+      query: 'unrelated zebra telescope',
+    },
+  });
+  assert.equal(response.status, 400);
+  assert.match(response.body.error, /no evidence hit/i);
+});
+
 test('evidence document HTTP API proves ingest, retrieval and citation resolution', async () => {
   const tenantId = 'http-tenant-a';
   const ingest = await handleApi({
