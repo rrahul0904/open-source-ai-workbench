@@ -30,8 +30,8 @@ try {
 
   const home = await fetch(`http://127.0.0.1:${port}/`).then((r) => r.text());
   if (!home.includes('Open Source AI Workbench')) throw new Error('home page smoke failed');
-  if (!home.includes('Evidence Document Engine')) throw new Error('evidence lab UI smoke failed');
-  console.log('smoke: health, cross-capability workflow, evidence flow and UI passed');
+  if (!home.includes('RE-389') || !home.includes('evidence-lab')) throw new Error('RE-389 evidence lab UI smoke failed');
+  console.log('smoke: health, cross-capability workflow, evidence flow and RE-389 UI passed');
 } finally {
   child.kill('SIGTERM');
 }
