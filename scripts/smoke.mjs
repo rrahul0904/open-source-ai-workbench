@@ -10,9 +10,28 @@ try {
   if (!runResponse.ok) throw new Error(`workflow smoke returned ${runResponse.status}`);
   const run = await runResponse.json();
   if (run.status !== 'succeeded') throw new Error('workflow smoke did not succeed');
+
+  const evidenceResponse = await fetch(`http://127.0.0.1:${port}/api/documents/flow`, {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({
+      tenantId: 'smoke-tenant',
+      documentId: 'smoke-doc',
+      mediaType: 'text/markdown',
+      content: '# Smoke fixture\nNorth generated 42 units.\n--- page:2 ---\n| Region | Units |\n| --- | --- |\n| South | 17 |',
+      query: 'North 42 units',
+    }),
+  });
+  if (!evidenceResponse.ok) throw new Error(`evidence flow smoke returned ${evidenceResponse.status}`);
+  const evidence = await evidenceResponse.json();
+  if (!evidence.evidence?.verified) throw new Error('evidence citation did not verify');
+  if (!evidence.retrieval?.hits?.length) throw new Error('evidence retrieval returned no hits');
+  if (evidence.evidence.sourceDigest !== evidence.retrieval.hits[0].sourceDigest) throw new Error('evidence source digest mismatch');
+
   const home = await fetch(`http://127.0.0.1:${port}/`).then((r) => r.text());
   if (!home.includes('Open Source AI Workbench')) throw new Error('home page smoke failed');
-  console.log('smoke: health, cross-capability workflow and UI passed');
+  if (!home.includes('Evidence Document Engine')) throw new Error('evidence lab UI smoke failed');
+  console.log('smoke: health, cross-capability workflow, evidence flow and UI passed');
 } finally {
   child.kill('SIGTERM');
 }
