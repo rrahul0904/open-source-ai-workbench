@@ -112,37 +112,33 @@ async function runEvidenceFlow() {
   ingestState.textContent = 'Running…';
   retrieveState.textContent = 'Waiting';
   citationState.textContent = 'Waiting';
-  result.textContent = 'Creating immutable source digest and structure-aware index…';
+  result.textContent = 'Creating immutable source digest and resolving evidence in one bounded serverless flow…';
   digest.textContent = '';
 
   try {
-    const ingest = await api('/api/documents/ingest', {
+    const flow = await api('/api/documents/flow', {
       method: 'POST',
-      body: JSON.stringify({ tenantId, documentId: 'browser-uat-fixture', mediaType: 'text/markdown', sourceKind: 'browser-uat', content }),
+      body: JSON.stringify({ tenantId, documentId: 'browser-uat-fixture', mediaType: 'text/markdown', sourceKind: 'browser-uat', content, query, limit: 5 }),
     });
-    ingestState.textContent = ingest.receipt.idempotentReplay ? 'Ready · replay' : 'Ready · indexed';
-    digest.textContent = ingest.receipt.indexReceipt.sourceDigest.slice(0, 12);
-
-    retrieveState.textContent = 'Running…';
-    const retrieval = await api('/api/documents/retrieve', { method: 'POST', body: JSON.stringify({ tenantId, query, limit: 5 }) });
-    const top = retrieval.retrieval.hits[0];
+    const top = flow.retrieval.hits[0];
     if (!top) throw new Error('No evidence hit matched the query.');
-    retrieveState.textContent = `${retrieval.retrieval.hits.length} hit${retrieval.retrieval.hits.length === 1 ? '' : 's'}`;
+    if (!flow.evidence.verified) throw new Error('Citation did not verify.');
 
-    citationState.textContent = 'Resolving…';
-    const resolved = await api('/api/documents/citation/resolve', { method: 'POST', body: JSON.stringify({ tenantId, citation: top.evidenceCitation }) });
-    if (!resolved.evidence.verified) throw new Error('Citation did not verify.');
+    ingestState.textContent = flow.receipt.idempotentReplay ? 'Ready · replay' : 'Ready · indexed';
+    retrieveState.textContent = `${flow.retrieval.hits.length} hit${flow.retrieval.hits.length === 1 ? '' : 's'}`;
     citationState.textContent = 'Verified';
+    digest.textContent = flow.receipt.indexReceipt.sourceDigest.slice(0, 12);
 
     result.textContent = JSON.stringify({
       sourceDigest: top.sourceDigest,
-      retrievalPolicy: retrieval.retrieval.retrievalPolicy,
+      retrievalPolicy: flow.retrieval.retrievalPolicy,
       lexicalScore: top.lexicalScore,
-      locator: resolved.evidence.locator,
-      evidenceText: resolved.evidence.text,
+      locator: flow.evidence.locator,
+      evidenceText: flow.evidence.text,
       evidenceTextDigest: top.evidenceCitation.evidenceTextDigest,
-      verified: resolved.evidence.verified,
-      authMode: resolved.authMode,
+      verified: flow.evidence.verified,
+      snapshotDigest: flow.snapshot.digest,
+      authMode: flow.authMode,
     }, null, 2);
   } catch (error) {
     if (ingestState.textContent === 'Running…') ingestState.textContent = 'Failed';
