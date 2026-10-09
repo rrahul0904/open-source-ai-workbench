@@ -1,12 +1,6 @@
 import crypto from 'node:crypto';
 
-const DEFAULT_LIMITS = Object.freeze({
-  maxRows: 50,
-  maxPageSize: 50,
-  maxBytes: 64 * 1024,
-  timeoutMs: 100
-});
-
+const DEFAULT_LIMITS = Object.freeze({ maxRows: 50, maxPageSize: 50, maxBytes: 64 * 1024, timeoutMs: 100 });
 const SOURCE_ID = 'demo-analytics';
 
 const FIXTURES = Object.freeze({
@@ -37,13 +31,13 @@ const TABLE_DEFINITIONS = Object.freeze({
   ])
 });
 
+const planStore = new Map();
 const receiptStore = new Map();
 
 function stableStringify(value) {
   if (Array.isArray(value)) return `[${value.map(stableStringify).join(',')}]`;
   if (value && typeof value === 'object') {
-    const keys = Object.keys(value).sort();
-    return `{${keys.map((key) => `${JSON.stringify(key)}:${stableStringify(value[key])}`).join(',')}}`;
+    return `{${Object.keys(value).sort().map((key) => `${JSON.stringify(key)}:${stableStringify(value[key])}`).join(',')}}`;
   }
   return JSON.stringify(value);
 }
@@ -52,23 +46,23 @@ function sha256(value) {
   return crypto.createHash('sha256').update(String(value)).digest('hex');
 }
 
-function deepClone(value) {
-  return JSON.parse(JSON.stringify(value));
+function clone(value) {
+  return value == null ? value : JSON.parse(JSON.stringify(value));
 }
 
-function currentSource() {
-  return Object.freeze({
+function sourceDefinition() {
+  return {
     id: SOURCE_ID,
     name: 'Synthetic Analytics Fixture',
     engine: 'synthetic-sql',
     environment: 'development',
-    capabilities: Object.freeze(['schema.read', 'query.select', 'receipt.read']),
-    readOnlyProof: Object.freeze({ enforced: true, mechanism: 'adapter-contract', scope: 'all-statements' })
-  });
+    capabilities: ['schema.read', 'query.select', 'receipt.read'],
+    readOnlyProof: { enforced: true, mechanism: 'adapter-contract', scope: 'all-statements' }
+  };
 }
 
 export function listSources() {
-  return [deepClone(currentSource())];
+  return [sourceDefinition()];
 }
 
 export function inspectSchema(sourceId = SOURCE_ID) {
@@ -78,122 +72,122 @@ export function inspectSchema(sourceId = SOURCE_ID) {
     columns: TABLE_DEFINITIONS[name].map((column) => ({ ...column })),
     rowCount: FIXTURES[name].length
   }));
-  const identity = { sourceId, engine: currentSource().engine, tables };
-  return {
-    ...identity,
-    revision: sha256(stableStringify(identity))
-  };
+  const identity = { sourceId, engine: sourceDefinition().engine, tables };
+  return { ...identity, revision: sha256(stableStringify(identity)) };
 }
 
 function rejectUnsafeStatement(sql) {
   const original = String(sql || '').trim();
   if (!original) throw Object.assign(new Error('SQL is required'), { code: 'SQL_REQUIRED' });
-  const withoutTrailingSemicolon = original.endsWith(';') ? original.slice(0, -1).trim() : original;
-  if (withoutTrailingSemicolon.includes(';')) {
-    throw Object.assign(new Error('Multiple SQL statements are not allowed'), { code: 'MULTI_STATEMENT_DENIED' });
-  }
-  if (/--|\/\*|\*\//.test(withoutTrailingSemicolon)) {
-    throw Object.assign(new Error('SQL comments are not allowed in Phase A'), { code: 'SQL_COMMENT_DENIED' });
-  }
-  if (!/^select\b/i.test(withoutTrailingSemicolon)) {
-    throw Object.assign(new Error('Phase A permits SELECT statements only'), { code: 'MUTATION_DENIED' });
-  }
-  return withoutTrailingSemicolon;
-}
-
-function splitColumns(value) {
-  const trimmed = value.trim();
-  if (trimmed === '*') return ['*'];
-  const columns = trimmed.split(',').map((part) => part.trim()).filter(Boolean);
-  if (!columns.length || columns.some((column) => !/^[A-Za-z_][A-Za-z0-9_]*$/.test(column))) {
-    throw Object.assign(new Error('Only simple column selections are supported in Phase A'), { code: 'UNSUPPORTED_SELECT_LIST' });
-  }
-  return columns;
+  const statement = original.endsWith(';') ? original.slice(0, -1).trim() : original;
+  if (statement.includes(';')) throw Object.assign(new Error('Multiple SQL statements are not allowed'), { code: 'MULTI_STATEMENT_DENIED' });
+  if (/--|\/\*|\*\//.test(statement)) throw Object.assign(new Error('SQL comments are not allowed in Phase A'), { code: 'SQL_COMMENT_DENIED' });
+  if (!/^select\b/i.test(statement)) throw Object.assign(new Error('Phase A permits SELECT statements only'), { code: 'MUTATION_DENIED' });
+  return statement;
 }
 
 function parseLiteral(token) {
-  const trimmed = token.trim();
-  if (/^'.*'$/.test(trimmed)) return trimmed.slice(1, -1).replace(/''/g, "'");
-  if (/^(true|false)$/i.test(trimmed)) return trimmed.toLowerCase() === 'true';
-  if (/^-?\d+$/.test(trimmed)) return trimmed;
+  const value = token.trim();
+  if (/^'(?:[^']|'')*'$/.test(value)) return value.slice(1, -1).replace(/''/g, "'");
+  if (/^(true|false)$/i.test(value)) return value.toLowerCase() === 'true';
+  if (/^-?\d+$/.test(value)) return value;
   throw Object.assign(new Error('WHERE values must be quoted strings, booleans, or integer literals'), { code: 'UNSUPPORTED_LITERAL' });
 }
 
 function parseSelect(sql) {
   const safeSql = rejectUnsafeStatement(sql);
-  const match = safeSql.match(/^select\s+(.+?)\s+from\s+([A-Za-z_][A-Za-z0-9_]*)(?:\s+where\s+([A-Za-z_][A-Za-z0-9_]*)\s*=\s*(.+?))?(?:\s+order\s+by\s+([A-Za-z_][A-Za-z0-9_]*)(?:\s+(asc|desc))?)?(?:\s+limit\s+(\d+))?$/i);
-  if (!match) {
-    throw Object.assign(new Error('Unsupported SELECT shape; Phase A supports SELECT columns FROM table [WHERE column = literal] [ORDER BY column] [LIMIT n]'), { code: 'UNSUPPORTED_QUERY' });
+  const base = safeSql.match(/^select\s+(.+?)\s+from\s+([A-Za-z_][A-Za-z0-9_]*)(.*)$/i);
+  if (!base) throw Object.assign(new Error('Unsupported SELECT shape'), { code: 'UNSUPPORTED_QUERY' });
+
+  const [, selection, table] = base;
+  let rest = base[3].trim();
+  let requestedLimit = null;
+  let orderBy = null;
+  let where = null;
+
+  const limitMatch = rest.match(/(?:^|\s)limit\s+(\d+)\s*$/i);
+  if (limitMatch) {
+    requestedLimit = Number(limitMatch[1]);
+    rest = rest.slice(0, limitMatch.index).trim();
   }
-  const [, selection, table, whereColumn, whereValue, orderColumn, orderDirection, limitValue] = match;
+
+  const orderMatch = rest.match(/(?:^|\s)order\s+by\s+([A-Za-z_][A-Za-z0-9_]*)(?:\s+(asc|desc))?\s*$/i);
+  if (orderMatch) {
+    orderBy = { column: orderMatch[1], direction: (orderMatch[2] || 'asc').toLowerCase() };
+    rest = rest.slice(0, orderMatch.index).trim();
+  }
+
+  if (rest) {
+    const whereMatch = rest.match(/^where\s+([A-Za-z_][A-Za-z0-9_]*)\s*=\s*(.+)$/i);
+    if (!whereMatch) throw Object.assign(new Error('Unsupported SELECT suffix'), { code: 'UNSUPPORTED_QUERY' });
+    where = { column: whereMatch[1], value: parseLiteral(whereMatch[2]) };
+  }
+
   if (!TABLE_DEFINITIONS[table]) throw Object.assign(new Error(`Unknown table: ${table}`), { code: 'TABLE_NOT_FOUND' });
   const knownColumns = new Set(TABLE_DEFINITIONS[table].map((column) => column.name));
-  const columns = splitColumns(selection);
-  for (const column of columns === ['*'] ? [] : columns) {
-    if (!knownColumns.has(column)) throw Object.assign(new Error(`Unknown column: ${column}`), { code: 'COLUMN_NOT_FOUND' });
+  const trimmedSelection = selection.trim();
+  const columns = trimmedSelection === '*' ? ['*'] : trimmedSelection.split(',').map((part) => part.trim()).filter(Boolean);
+  if (!columns.length || columns.some((column) => column !== '*' && !/^[A-Za-z_][A-Za-z0-9_]*$/.test(column))) {
+    throw Object.assign(new Error('Only simple column selections are supported'), { code: 'UNSUPPORTED_SELECT_LIST' });
   }
-  if (whereColumn && !knownColumns.has(whereColumn)) throw Object.assign(new Error(`Unknown WHERE column: ${whereColumn}`), { code: 'COLUMN_NOT_FOUND' });
-  if (orderColumn && !knownColumns.has(orderColumn)) throw Object.assign(new Error(`Unknown ORDER BY column: ${orderColumn}`), { code: 'COLUMN_NOT_FOUND' });
-  return {
-    sql: safeSql,
-    table,
-    columns,
-    where: whereColumn ? { column: whereColumn, value: parseLiteral(whereValue) } : null,
-    orderBy: orderColumn ? { column: orderColumn, direction: (orderDirection || 'asc').toLowerCase() } : null,
-    requestedLimit: limitValue ? Number(limitValue) : null
-  };
+  for (const column of columns) {
+    if (column !== '*' && !knownColumns.has(column)) throw Object.assign(new Error(`Unknown column: ${column}`), { code: 'COLUMN_NOT_FOUND' });
+  }
+  if (where && !knownColumns.has(where.column)) throw Object.assign(new Error(`Unknown WHERE column: ${where.column}`), { code: 'COLUMN_NOT_FOUND' });
+  if (orderBy && !knownColumns.has(orderBy.column)) throw Object.assign(new Error(`Unknown ORDER BY column: ${orderBy.column}`), { code: 'COLUMN_NOT_FOUND' });
+  if (requestedLimit !== null && (!Number.isSafeInteger(requestedLimit) || requestedLimit < 1)) {
+    throw Object.assign(new Error('LIMIT must be a positive safe integer'), { code: 'INVALID_LIMIT' });
+  }
+  return { sql: safeSql, table, columns, where, orderBy, requestedLimit };
 }
 
-function canonicalPlanPayload({ sourceId, schemaRevision, parsed, limits }) {
+function boundedLimits(limits = {}) {
   return {
-    sourceId,
-    schemaRevision,
-    operation: 'select',
-    query: {
-      table: parsed.table,
-      columns: parsed.columns,
-      where: parsed.where,
-      orderBy: parsed.orderBy,
-      requestedLimit: parsed.requestedLimit
-    },
-    limits
-  };
-}
-
-export function planQuery({ sourceId = SOURCE_ID, sql, limits = {} } = {}) {
-  const schema = inspectSchema(sourceId);
-  const parsed = parseSelect(sql);
-  const boundedLimits = {
     maxRows: Math.max(1, Math.min(DEFAULT_LIMITS.maxRows, Number(limits.maxRows) || DEFAULT_LIMITS.maxRows)),
     maxPageSize: Math.max(1, Math.min(DEFAULT_LIMITS.maxPageSize, Number(limits.maxPageSize) || DEFAULT_LIMITS.maxPageSize)),
     maxBytes: Math.max(1024, Math.min(DEFAULT_LIMITS.maxBytes, Number(limits.maxBytes) || DEFAULT_LIMITS.maxBytes)),
     timeoutMs: Math.max(10, Math.min(DEFAULT_LIMITS.timeoutMs, Number(limits.timeoutMs) || DEFAULT_LIMITS.timeoutMs))
   };
-  const payload = canonicalPlanPayload({ sourceId, schemaRevision: schema.revision, parsed, limits: boundedLimits });
-  return {
-    id: `plan_${sha256(stableStringify(payload)).slice(0, 24)}`,
-    ...payload,
+}
+
+function planCore(plan) {
+  return { sourceId: plan.sourceId, schemaRevision: plan.schemaRevision, operation: plan.operation, query: plan.query, limits: plan.limits, sqlHash: plan.sqlHash };
+}
+
+export function planQuery({ sourceId = SOURCE_ID, sql, limits = {} } = {}) {
+  const schema = inspectSchema(sourceId);
+  const parsed = parseSelect(sql);
+  const plan = {
+    sourceId,
+    schemaRevision: schema.revision,
+    operation: 'select',
+    query: { table: parsed.table, columns: parsed.columns, where: parsed.where, orderBy: parsed.orderBy, requestedLimit: parsed.requestedLimit },
+    limits: boundedLimits(limits),
     sqlHash: sha256(parsed.sql),
     policy: { mode: 'read-only', requiresApproval: false }
   };
+  plan.id = `plan_${sha256(stableStringify(planCore(plan))).slice(0, 24)}`;
+  planStore.set(plan.id, Object.freeze(clone(plan)));
+  return clone(plan);
 }
 
-function compareForFilter(actual, expected) {
-  if (typeof actual === 'boolean') return actual === expected;
-  return String(actual) === String(expected);
+function compareValues(left, right) {
+  if (typeof left === 'number' && typeof right === 'number') return left - right;
+  if (typeof left === 'boolean' && typeof right === 'boolean') return Number(left) - Number(right);
+  const a = String(left);
+  const b = String(right);
+  if (/^\d+$/.test(a) && /^\d+$/.test(b)) return a.length === b.length ? a.localeCompare(b) : a.length - b.length;
+  return a.localeCompare(b);
 }
 
 function executePlan(plan) {
-  const tableRows = FIXTURES[plan.query.table];
-  let rows = tableRows.map((row) => ({ ...row }));
-  if (plan.query.where) rows = rows.filter((row) => compareForFilter(row[plan.query.where.column], plan.query.where.value));
+  let rows = FIXTURES[plan.query.table].map((row) => ({ ...row }));
+  if (plan.query.where) rows = rows.filter((row) => String(row[plan.query.where.column]) === String(plan.query.where.value));
   if (plan.query.orderBy) {
-    const { column, direction } = plan.query.orderBy;
-    const factor = direction === 'desc' ? -1 : 1;
-    rows.sort((left, right) => String(left[column]).localeCompare(String(right[column]), 'en', { numeric: true }) * factor);
+    const factor = plan.query.orderBy.direction === 'desc' ? -1 : 1;
+    rows.sort((a, b) => compareValues(a[plan.query.orderBy.column], b[plan.query.orderBy.column]) * factor);
   }
-  const limit = Math.min(plan.limits.maxRows, plan.query.requestedLimit || plan.limits.maxRows);
-  rows = rows.slice(0, limit);
+  rows = rows.slice(0, Math.min(plan.limits.maxRows, plan.query.requestedLimit || plan.limits.maxRows));
   if (!(plan.query.columns.length === 1 && plan.query.columns[0] === '*')) {
     rows = rows.map((row) => Object.fromEntries(plan.query.columns.map((column) => [column, row[column]])));
   }
@@ -203,30 +197,28 @@ function executePlan(plan) {
 }
 
 function policyDecision(plan) {
-  const source = currentSource();
   if (!plan || typeof plan !== 'object') return { allowed: false, code: 'PLAN_REQUIRED', reason: 'A validated query plan is required' };
+  const stored = planStore.get(plan.id);
+  if (!stored || stableStringify(stored) !== stableStringify(plan)) return { allowed: false, code: 'PLAN_TAMPERED', reason: 'The plan was not issued by the planner or has been modified' };
   if (plan.operation !== 'select') return { allowed: false, code: 'MUTATION_DENIED', reason: 'Phase A permits SELECT plans only' };
-  if (plan.sourceId !== source.id) return { allowed: false, code: 'SOURCE_MISMATCH', reason: 'The plan is bound to a different data source' };
-  const currentSchema = inspectSchema(source.id);
-  if (plan.schemaRevision !== currentSchema.revision) return { allowed: false, code: 'STALE_SCHEMA', reason: 'The plan schema revision is stale' };
-  if (!source.readOnlyProof?.enforced) return { allowed: false, code: 'READ_ONLY_PROOF_REQUIRED', reason: 'Read-only enforcement is not proven by the adapter' };
+  if (plan.sourceId !== SOURCE_ID) return { allowed: false, code: 'SOURCE_MISMATCH', reason: 'The plan is bound to a different data source' };
+  if (plan.schemaRevision !== inspectSchema(SOURCE_ID).revision) return { allowed: false, code: 'STALE_SCHEMA', reason: 'The plan schema revision is stale' };
+  if (!sourceDefinition().readOnlyProof.enforced) return { allowed: false, code: 'READ_ONLY_PROOF_REQUIRED', reason: 'Read-only enforcement is not proven by the adapter' };
   return { allowed: true, code: 'ALLOW_READ', reason: 'Read-only plan is bound to the current source and schema revision' };
 }
 
-function receiptIdentity({ requestId, plan, status, code }) {
+function receiptId({ requestId, plan, status, code }) {
   return `receipt_${sha256(stableStringify({ requestId, planId: plan?.id || null, status, code })).slice(0, 24)}`;
 }
 
-function persistReceipt(receipt) {
-  if (receiptStore.has(receipt.id)) return deepClone(receiptStore.get(receipt.id));
-  const frozen = Object.freeze(deepClone(receipt));
-  receiptStore.set(receipt.id, frozen);
-  return deepClone(frozen);
+function saveReceipt(receipt) {
+  if (!receiptStore.has(receipt.id)) receiptStore.set(receipt.id, Object.freeze(clone(receipt)));
+  return clone(receiptStore.get(receipt.id));
 }
 
-function makeReceipt({ requestId, plan, decision, status, code, result = null, error = null }) {
-  const receipt = {
-    id: receiptIdentity({ requestId, plan, status, code }),
+function recordReceipt({ requestId, plan, decision, status, code, result = null, error = null }) {
+  return saveReceipt({
+    id: receiptId({ requestId, plan, status, code }),
     requestId,
     planId: plan?.id || null,
     sourceId: plan?.sourceId || null,
@@ -239,70 +231,55 @@ function makeReceipt({ requestId, plan, decision, status, code, result = null, e
     resultMetadata: result ? { rowCount: result.rowCount, bytes: result.bytes } : null,
     error: error ? String(error) : null,
     recordedAt: new Date().toISOString()
-  };
-  return persistReceipt(receipt);
+  });
 }
 
-export function getExecutionReceipt(receiptId) {
-  const receipt = receiptStore.get(receiptId);
-  return receipt ? deepClone(receipt) : null;
+export function getExecutionReceipt(id) {
+  return clone(receiptStore.get(id) || null);
 }
 
 export function searchExecutionReceipts({ sourceId = null, status = null, sqlHash = null } = {}) {
-  return [...receiptStore.values()]
-    .filter((receipt) => !sourceId || receipt.sourceId === sourceId)
+  return [...receiptStore.values()].filter((receipt) => !sourceId || receipt.sourceId === sourceId)
     .filter((receipt) => !status || receipt.status === status)
     .filter((receipt) => !sqlHash || receipt.sqlHash === sqlHash)
-    .map(deepClone);
+    .map(clone);
 }
 
 export function runReadQuery({ plan = null, sourceId = SOURCE_ID, sql = null, limits = {}, requestId = null } = {}) {
-  let validatedPlan = plan;
+  let effectivePlan = plan;
   let planningError = null;
-  if (!validatedPlan) {
-    try {
-      validatedPlan = planQuery({ sourceId, sql, limits });
-    } catch (error) {
-      planningError = error;
-    }
+  if (!effectivePlan) {
+    try { effectivePlan = planQuery({ sourceId, sql, limits }); } catch (error) { planningError = error; }
   }
-  const effectiveRequestId = String(requestId || `auto_${sha256(stableStringify({ sourceId, sqlHash: validatedPlan?.sqlHash || sha256(String(sql || '')), planId: validatedPlan?.id || null })).slice(0, 24)}`);
+  const effectiveRequestId = String(requestId || `auto_${sha256(stableStringify({ sourceId, planId: effectivePlan?.id || null, sql: String(sql || '') })).slice(0, 24)}`);
+
   if (planningError) {
     const decision = { allowed: false, code: planningError.code || 'PLAN_INVALID', reason: planningError.message };
-    const receipt = makeReceipt({ requestId: effectiveRequestId, plan: null, decision, status: 'denied', code: decision.code, error: decision.reason });
-    return { status: 'denied', decision, receipt, result: null };
+    const receipt = recordReceipt({ requestId: effectiveRequestId, plan: null, decision, status: 'denied', code: decision.code, error: decision.reason });
+    return { status: 'denied', decision, receipt, result: null, replayed: false };
   }
-  const decision = policyDecision(validatedPlan);
+
+  const decision = policyDecision(effectivePlan);
   if (!decision.allowed) {
-    const receipt = makeReceipt({ requestId: effectiveRequestId, plan: validatedPlan, decision, status: 'denied', code: decision.code, error: decision.reason });
-    return { status: 'denied', decision, receipt, result: null };
+    const receipt = recordReceipt({ requestId: effectiveRequestId, plan: effectivePlan, decision, status: 'denied', code: decision.code, error: decision.reason });
+    return { status: 'denied', decision, receipt, result: null, replayed: false };
   }
-  const expectedReceiptId = receiptIdentity({ requestId: effectiveRequestId, plan: validatedPlan, status: 'succeeded', code: 'QUERY_EXECUTED' });
-  const replay = receiptStore.get(expectedReceiptId);
-  if (replay) return { status: 'succeeded', decision, receipt: deepClone(replay), result: null, replayed: true };
+
+  const successId = receiptId({ requestId: effectiveRequestId, plan: effectivePlan, status: 'succeeded', code: 'QUERY_EXECUTED' });
+  if (receiptStore.has(successId)) return { status: 'succeeded', decision, receipt: getExecutionReceipt(successId), result: null, replayed: true };
+
   try {
-    const started = performance.now();
-    const result = executePlan(validatedPlan);
-    if (performance.now() - started > validatedPlan.limits.timeoutMs) {
-      throw Object.assign(new Error('Query exceeded the configured timeout ceiling'), { code: 'QUERY_TIMEOUT' });
-    }
-    const receipt = makeReceipt({ requestId: effectiveRequestId, plan: validatedPlan, decision, status: 'succeeded', code: 'QUERY_EXECUTED', result });
+    const startedAt = performance.now();
+    const result = executePlan(effectivePlan);
+    if (performance.now() - startedAt > effectivePlan.limits.timeoutMs) throw Object.assign(new Error('Query exceeded the configured timeout ceiling'), { code: 'QUERY_TIMEOUT' });
+    const receipt = recordReceipt({ requestId: effectiveRequestId, plan: effectivePlan, decision, status: 'succeeded', code: 'QUERY_EXECUTED', result });
     return {
-      status: 'succeeded',
-      decision,
-      receipt,
-      result: {
-        rows: result.rows,
-        rowCount: result.rowCount,
-        bytes: result.bytes,
-        page: 1,
-        pageSize: Math.min(validatedPlan.limits.maxPageSize, result.rowCount || validatedPlan.limits.maxPageSize)
-      },
-      replayed: false
+      status: 'succeeded', decision, receipt, replayed: false,
+      result: { ...result, page: 1, pageSize: Math.min(effectivePlan.limits.maxPageSize, result.rowCount || effectivePlan.limits.maxPageSize) }
     };
   } catch (error) {
-    const receipt = makeReceipt({ requestId: effectiveRequestId, plan: validatedPlan, decision, status: 'failed', code: error.code || 'QUERY_FAILED', error: error.message });
-    return { status: 'failed', decision, receipt, result: null };
+    const receipt = recordReceipt({ requestId: effectiveRequestId, plan: effectivePlan, decision, status: 'failed', code: error.code || 'QUERY_FAILED', error: error.message });
+    return { status: 'failed', decision, receipt, result: null, replayed: false };
   }
 }
 
